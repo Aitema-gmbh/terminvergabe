@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>aitema|Termin - Aufrufanzeige</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header id="header">
+    <h1>aitema<span class="accent">|</span>Termin</h1>
+    <div id="clock"></div>
+  </header>
+
+  <main>
+    <!-- Current call - large animated display -->
+    <section id="current-call" class="hidden" aria-live="assertive">
+      <div class="call-label">Bitte zum Schalter</div>
+      <div id="call-ticket" class="call-ticket"></div>
+      <div class="call-arrow">&#10132;</div>
+      <div id="call-counter" class="call-counter"></div>
+    </section>
+
+    <!-- Queue board -->
+    <section id="queue-board">
+      <h2>Aktuelle Aufrufe</h2>
+      <div id="called-list" class="called-list"></div>
+    </section>
+
+    <!-- Waiting info -->
+    <footer id="waiting-info">
+      <span>Wartend: <strong id="waiting-count">0</strong></span>
+      <span id="connection-status" class="status-offline">Verbinde...</span>
+    </footer>
+  </main>
+
+  <div id="notification-sound"></div>
+  <script src="display.js"></script>
+</body>
+</html>

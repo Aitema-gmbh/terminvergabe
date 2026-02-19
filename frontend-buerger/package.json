@@ -1,0 +1,25 @@
+{
+  "name": "@aitema/termin-buerger",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.2.9",
+    "@sveltejs/kit": "^2.12.1",
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "svelte": "^5.14.0",
+    "svelte-check": "^4.1.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  },
+  "type": "module"
+}

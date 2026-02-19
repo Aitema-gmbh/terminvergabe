@@ -1,0 +1,343 @@
+// aitema|Termin - Prisma Schema
+// Terminvergabe fuer deutsche Kommunen
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Multi-Tenant
+// ============================================================
+model Tenant {
+  id            String   @id @default(uuid())
+  name          String   // Kommune-Name
+  slug          String   @unique // URL-Slug
+  ags           String?  // Amtlicher Gemeindeschluessel
+  domain        String?  // Custom domain
+  active        Boolean  @default(true)
+  
+  // Branding
+  primaryColor  String   @default("#1e3a5f")
+  logoUrl       String?
+  
+  // Config
+  timezone      String   @default("Europe/Berlin")
+  locale        String   @default("de-DE")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  locations     Location[]
+  services      Service[]
+  employees     Employee[]
+  appointments  Appointment[]
+  queueEntries  QueueEntry[]
+  settings      TenantSettings?
+  
+  @@index([slug])
+  @@index([ags])
+}
+
+model TenantSettings {
+  id                    String  @id @default(uuid())
+  tenantId              String  @unique
+  tenant                Tenant  @relation(fields: [tenantId], references: [id])
+  
+  // Booking rules
+  maxAdvanceBookingDays Int     @default(90)
+  minBookingLeadHours   Int     @default(1)
+  cancelLeadHours       Int     @default(24)
+  maxBookingsPerPerson  Int     @default(3)
+  requireEmailVerify    Boolean @default(true)
+  
+  // Queue settings
+  queueEnabled          Boolean @default(true)
+  estimatedWaitDisplay  Boolean @default(true)
+  
+  // BundID
+  bundIdEnabled         Boolean @default(false)
+  bundIdClientId        String?
+  bundIdRedirectUri     String?
+  
+  // Notifications
+  reminderHoursBefore   Int     @default(24)
+  smsEnabled            Boolean @default(false)
+  emailEnabled          Boolean @default(true)
+  
+  // Display
+  displayBoardEnabled   Boolean @default(true)
+  callSystemEnabled     Boolean @default(false)
+}
+
+// ============================================================
+// Locations & Services
+// ============================================================
+model Location {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  name        String   // z.B. "Buergerbuero Mitte"
+  address     String?
+  room        String?
+  postalCode  String?
+  city        String?
+  phone       String?
+  email       String?
+  
+  latitude    Float?
+  longitude   Float?
+  
+  active      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  counters    Counter[]
+  services    LocationService[]
+  appointments Appointment[]
+  queueEntries QueueEntry[]
+  
+  @@index([tenantId])
+}
+
+model Service {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  
+  name            String   // z.B. "Personalausweis beantragen"
+  description     String?
+  category        String?  // z.B. "Ausweisdokumente", "Meldewesen", "KFZ"
+  duration        Int      @default(15) // Dauer in Minuten
+  bufferTime      Int      @default(5)  // Puffer zwischen Terminen
+  
+  // Requirements
+  requiredDocs    String[] // Benoetigte Unterlagen
+  onlineFormUrl   String?  // Link zum Online-Formular
+  fee             Float?   // Gebuehr in EUR
+  
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  
+  color           String   @default("#3b82f6")
+  icon            String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  locations       LocationService[]
+  appointments    Appointment[]
+  queueEntries    QueueEntry[]
+  
+  @@index([tenantId, category])
+}
+
+model LocationService {
+  id          String   @id @default(uuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  
+  active      Boolean  @default(true)
+  
+  @@unique([locationId, serviceId])
+}
+
+// ============================================================
+// Employees & Counters
+// ============================================================
+model Employee {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  name        String
+  email       String
+  role        EmployeeRole @default(SACHBEARBEITER)
+  active      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  counterAssignments CounterAssignment[]
+  appointments       Appointment[]
+  
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+enum EmployeeRole {
+  ADMIN
+  TEAMLEITER
+  SACHBEARBEITER
+  EMPFANG
+}
+
+model Counter {
+  id          String   @id @default(uuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  
+  number      Int      // Schalternummer
+  name        String?  // z.B. "Schalter 3"
+  active      Boolean  @default(true)
+  
+  // Relations
+  assignments CounterAssignment[]
+  queueEntries QueueEntry[]
+  
+  @@unique([locationId, number])
+}
+
+model CounterAssignment {
+  id          String   @id @default(uuid())
+  counterId   String
+  counter     Counter  @relation(fields: [counterId], references: [id])
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  
+  date        DateTime @db.Date
+  startTime   DateTime
+  endTime     DateTime
+  
+  @@index([counterId, date])
+  @@index([employeeId, date])
+}
+
+// ============================================================
+// Time Slots & Appointments
+// ============================================================
+model Appointment {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  locationId      String
+  location        Location @relation(fields: [locationId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  employeeId      String?
+  employee        Employee? @relation(fields: [employeeId], references: [id])
+  
+  // Time
+  date            DateTime @db.Date
+  startTime       DateTime
+  endTime         DateTime
+  
+  // Citizen info
+  citizenName     String
+  citizenEmail    String?
+  citizenPhone    String?
+  
+  // Status
+  status          AppointmentStatus @default(BOOKED)
+  
+  // Booking reference
+  bookingRef      String   @unique  // z.B. "TRM-2026-00042"
+  confirmationSent Boolean @default(false)
+  reminderSent    Boolean  @default(false)
+  
+  // Check-in
+  checkedInAt     DateTime?
+  calledAt        DateTime?
+  completedAt     DateTime?
+  
+  // BundID
+  bundIdVerified  Boolean  @default(false)
+  
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([tenantId, date])
+  @@index([locationId, date])
+  @@index([status])
+  @@index([bookingRef])
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  CHECKED_IN
+  CALLED
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+// ============================================================
+// Queue Management (Wartenummern)
+// ============================================================
+model QueueEntry {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  counterId   String?
+  counter     Counter? @relation(fields: [counterId], references: [id])
+  
+  // Queue number
+  ticketNumber String  // z.B. "A042"
+  
+  // Citizen
+  citizenName  String?
+  
+  // Status
+  status       QueueStatus @default(WAITING)
+  priority     Int         @default(0) // Higher = more urgent
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  calledAt     DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  
+  // Calculated
+  estimatedWait Int?    // Minutes
+  
+  @@index([tenantId, locationId, status])
+  @@index([ticketNumber])
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+// ============================================================
+// Availability / Opening Hours
+// ============================================================
+model OpeningHours {
+  id          String   @id @default(uuid())
+  locationId  String
+  
+  dayOfWeek   Int      // 0=Monday, 6=Sunday
+  openTime    String   // "08:00"
+  closeTime   String   // "16:00"
+  
+  // For specific date overrides
+  specificDate DateTime? @db.Date
+  closed       Boolean  @default(false) // Holiday/closure
+  note         String?  // z.B. "Feiertag"
+  
+  @@index([locationId, dayOfWeek])
+}
