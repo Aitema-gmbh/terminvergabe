@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>aitema|Termin – Digitale Terminvergabe fuer Kommunen</title>
+    <meta name="description" content="Digitale Terminvergabe fuer Kommunen. Online-Buchung, Walk-in Queue, Aufrufanlage. BundID-ready und Open Source.">
+    <style>
+        :root {
+            --primary: #0d4f8b;
+            --primary-light: #1a73b5;
+            --accent: #e67e22;
+            --accent-hover: #d35400;
+            --bg: #f8f9fb;
+            --bg-alt: #ffffff;
+            --text: #1a202c;
+            --text-muted: #5a6577;
+            --border: #e3e8ef;
+            --shadow: 0 4px 24px rgba(0,0,0,0.08);
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); line-height: 1.7; }
+        .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+        /* Navigation */
+        nav { background: var(--primary); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: #fff; font-size: 1.4rem; font-weight: 700; text-decoration: none; }
+        .logo span { color: var(--accent); }
+        nav ul { list-style: none; display: flex; gap: 28px; }
+        nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.95rem; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+
+        /* Hero */
+        .hero { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: #fff; padding: 100px 0 80px; text-align: center; }
+        .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
+        .hero p { font-size: 1.25rem; opacity: 0.9; max-width: 640px; margin: 0 auto 40px; }
+        .hero-badges { display: flex; gap: 12px; justify-content: center; margin-bottom: 40px; flex-wrap: wrap; }
+        .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; }
+        .cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-block; padding: 14px 32px; border-radius: 8px; font-size: 1rem; font-weight: 600; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,0.5); }
+        .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+
+        /* Sections */
+        section { padding: 80px 0; }
+        section:nth-child(even) { background: var(--bg); }
+        .section-title { text-align: center; margin-bottom: 56px; }
+        .section-title h2 { font-size: 2rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+        .section-title p { color: var(--text-muted); font-size: 1.1rem; max-width: 560px; margin: 0 auto; }
+
+        /* Features */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px; }
+        .feature-card { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; transition: box-shadow 0.2s, transform 0.2s; }
+        .feature-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+        .feature-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 1.4rem; color: #fff; }
+        .feature-card h3 { font-size: 1.15rem; margin-bottom: 8px; color: var(--primary); }
+        .feature-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Workflow */
+        .workflow { background: var(--primary); color: #fff; padding: 80px 0; }
+        .workflow .section-title h2 { color: #fff; }
+        .workflow .section-title p { color: rgba(255,255,255,0.8); }
+        .workflow-steps { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; }
+        .workflow-step { text-align: center; padding: 24px; flex: 1; min-width: 180px; }
+        .workflow-step .step-num { width: 56px; height: 56px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; margin: 0 auto 12px; }
+        .workflow-step h4 { font-size: 1rem; margin-bottom: 6px; }
+        .workflow-step p { font-size: 0.85rem; opacity: 0.8; }
+        .workflow-arrow { font-size: 1.5rem; color: var(--accent); flex-shrink: 0; }
+
+        /* Pricing */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+        .price-card { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; text-align: center; position: relative; transition: box-shadow 0.2s; }
+        .price-card.featured { border: 2px solid var(--accent); box-shadow: var(--shadow); }
+        .price-card.featured::before { content: "Beliebt"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 4px 16px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .price-card h3 { font-size: 1.3rem; color: var(--primary); margin-bottom: 8px; }
+        .price { font-size: 2.2rem; font-weight: 800; color: var(--text); margin: 16px 0; }
+        .price small { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); }
+        .price-features { list-style: none; text-align: left; margin: 24px 0; }
+        .price-features li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; color: var(--text-muted); }
+        .price-features li::before { content: "\2713"; color: var(--accent); font-weight: 700; margin-right: 10px; }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; text-align: center; padding: 60px 0; }
+        .stat-num { font-size: 2.5rem; font-weight: 800; color: var(--primary); }
+        .stat-label { color: var(--text-muted); font-size: 0.95rem; margin-top: 4px; }
+
+        /* CTA */
+        .cta-section { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%); color: #fff; padding: 60px 0; text-align: center; }
+        .cta-section h2 { font-size: 2rem; margin-bottom: 12px; }
+        .cta-section p { opacity: 0.9; margin-bottom: 28px; font-size: 1.1rem; }
+        .btn-white { background: #fff; color: var(--primary); }
+        .btn-white:hover { background: #f0f0f0; }
+
+        /* Footer */
+        footer { background: var(--primary); color: rgba(255,255,255,0.7); padding: 40px 0; text-align: center; font-size: 0.9rem; }
+        footer a { color: rgba(255,255,255,0.85); text-decoration: none; }
+        footer a:hover { color: #fff; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .hero { padding: 60px 0 50px; }
+            section { padding: 50px 0; }
+            nav ul { display: none; }
+            .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+            .workflow-arrow { display: none; }
+            .workflow-steps { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">aitema|<span>Termin</span></a>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#workflow">So funktioniert es</a></li>
+                <li><a href="#pricing">Preise</a></li>
+                <li><a href="mailto:info@aitema.de">Kontakt</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Digitale Terminvergabe f&uuml;r Ihre Kommune</h1>
+            <p>B&uuml;rgerfreundlich. Effizient. BundID-ready. Weniger Wartezeit, mehr Zufriedenheit.</p>
+            <div class="hero-badges">
+                <span class="badge">BundID / eID</span>
+                <span class="badge">AGPLv3</span>
+                <span class="badge">Multi-Standort</span>
+                <span class="badge">Docker</span>
+            </div>
+            <div class="cta-group">
+                <a href="#demo" class="btn btn-primary">Demo starten</a>
+                <a href="#pricing" class="btn btn-outline">Community Edition</a>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <div class="stats">
+                <div>
+                    <div class="stat-num">73%</div>
+                    <div class="stat-label">weniger Wartezeit im B&uuml;rgerb&uuml;ro</div>
+                </div>
+                <div>
+                    <div class="stat-num">24/7</div>
+                    <div class="stat-label">Online-Terminbuchung</div>
+                </div>
+                <div>
+                    <div class="stat-num">100%</div>
+                    <div class="stat-label">OZG-konform mit BundID</div>
+                </div>
+                <div>
+                    <div class="stat-num">&lt;5 Min</div>
+                    <div class="stat-label">durchschnittliche Wartezeit</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" style="background:var(--bg);">
+        <div class="container">
+            <div class="section-title">
+                <h2>Alles f&uuml;r das digitale B&uuml;rgerb&uuml;ro</h2>
+                <p>Von der Online-Buchung bis zur Aufrufanlage &ndash; ein nahtloser Workflow.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#128197;</div>
+                    <h3>Online-Buchung</h3>
+                    <p>B&uuml;rger buchen Termine rund um die Uhr &uuml;ber ein barrierefreies Buchungsportal. Automatische Best&auml;tigung per E-Mail und SMS.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128101;</div>
+                    <h3>Walk-in Queue</h3>
+                    <p>Wartenummern-System f&uuml;r Laufkundschaft. B&uuml;rger ziehen am Kiosk eine Nummer und werden automatisch in die Warteschlange eingereiht.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128250;</div>
+                    <h3>Aufrufanlage</h3>
+                    <p>Digitale Anzeige f&uuml;r Wartebereiche. Zeigt aktuelle Aufrufe, gesch&auml;tzte Wartezeiten und optionale Hinweise auf Bildschirmen an.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128272;</div>
+                    <h3>BundID / eID</h3>
+                    <p>Identifikation per BundID und elektronischem Personalausweis. Medienbruchfreie Authentifizierung gem&auml;&szlig; OZG.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128202;</div>
+                    <h3>Statistik &amp; Planung</h3>
+                    <p>Auswertungen zu Auslastung, Wartezeiten und Servicedauer. Datenbasierte Kapazit&auml;tsplanung f&uuml;r Ihre Standorte.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127970;</div>
+                    <h3>Multi-Standort</h3>
+                    <p>Verwalten Sie mehrere B&uuml;rgerb&uuml;ros zentral. Einheitliche Konfiguration bei standortspezifischen &Ouml;ffnungszeiten und Services.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="workflow" id="workflow">
+        <div class="container">
+            <div class="section-title">
+                <h2>Der B&uuml;rger-Workflow</h2>
+                <p>Ob online gebucht oder spontan vorbei &ndash; ein einheitlicher Ablauf.</p>
+            </div>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-num">1</div>
+                    <h4>Termin buchen</h4>
+                    <p>Online-Portal oder Walk-in am Kiosk-Terminal</p>
+                </div>
+                <div class="workflow-arrow">&#10132;</div>
+                <div class="workflow-step">
+                    <div class="step-num">2</div>
+                    <h4>Wartebereich</h4>
+                    <p>Digitale Anzeige mit Wartenummer und Wartezeit</p>
+                </div>
+                <div class="workflow-arrow">&#10132;</div>
+                <div class="workflow-step">
+                    <div class="step-num">3</div>
+                    <h4>Aufruf</h4>
+                    <p>Automatischer Aufruf auf Display und per App</p>
+                </div>
+                <div class="workflow-arrow">&#10132;</div>
+                <div class="workflow-step">
+                    <div class="step-num">4</div>
+                    <h4>Bearbeitung</h4>
+                    <p>Service am Schalter mit Vorgangsdaten</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing">
+        <div class="container">
+            <div class="section-title">
+                <h2>Einfache Preisgestaltung</h2>
+                <p>Skaliert mit Ihren Standorten. Keine versteckten Kosten.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="price-card">
+                    <h3>Community</h3>
+                    <div class="price">Kostenlos</div>
+                    <p style="color:var(--text-muted);margin-bottom:16px;">Self-Hosted, AGPLv3</p>
+                    <ul class="price-features">
+                        <li>Voller Funktionsumfang</li>
+                        <li>Online-Buchung &amp; Walk-in</li>
+                        <li>Aufrufanlage</li>
+                        <li>1 Standort</li>
+                        <li>Community-Support (GitHub)</li>
+                        <li>Docker Deployment</li>
+                    </ul>
+                    <a href="https://github.com/aitema/termin" class="btn btn-primary" style="width:100%;">Auf GitHub starten</a>
+                </div>
+                <div class="price-card featured">
+                    <h3>Managed</h3>
+                    <div class="price">ab 199&euro;<small>/Monat pro Standort</small></div>
+                    <p style="color:var(--text-muted);margin-bottom:16px;">Hosting &amp; Support inklusive</p>
+                    <ul class="price-features">
+                        <li>Alles aus Community</li>
+                        <li>Managed Hosting (DE)</li>
+                        <li>Multi-Standort</li>
+                        <li>BundID-Integration</li>
+                        <li>E-Mail &amp; Telefon-Support</li>
+                        <li>Automatische Updates</li>
+                    </ul>
+                    <a href="mailto:info@aitema.de?subject=aitema|Termin%20Managed" class="btn btn-primary" style="width:100%;">Angebot anfordern</a>
+                </div>
+                <div class="price-card">
+                    <h3>Enterprise</h3>
+                    <div class="price">Auf Anfrage</div>
+                    <p style="color:var(--text-muted);margin-bottom:16px;">Hardware, SLA, Integration</p>
+                    <ul class="price-features">
+                        <li>Alles aus Managed</li>
+                        <li>Kiosk-Hardware inklusive</li>
+                        <li>Display-Hardware inklusive</li>
+                        <li>SLA mit Reaktionszeiten</li>
+                        <li>Fachverfahren-Integration</li>
+                        <li>Schulungen vor Ort</li>
+                    </ul>
+                    <a href="mailto:info@aitema.de?subject=aitema|Termin%20Enterprise" class="btn btn-primary" style="width:100%;">Gespr&auml;ch vereinbaren</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <h2>Weniger Wartezeit. Mehr Zufriedenheit.</h2>
+            <p>Testen Sie aitema|Termin kostenlos mit Docker in unter 5 Minuten.</p>
+            <a href="#demo" class="btn btn-white">Demo starten</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 aitema GmbH &middot; <a href="mailto:info@aitema.de">info@aitema.de</a> &middot; <a href="https://aitema.de/impressum">Impressum</a> &middot; <a href="https://aitema.de/datenschutz">Datenschutz</a></p>
+        </div>
+    </footer>
+</body>
+</html>
