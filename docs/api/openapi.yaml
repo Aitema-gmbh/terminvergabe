@@ -1,0 +1,1287 @@
+openapi: 3.0.3
+info:
+  title: aitema|Termin API
+  description: |
+    Kommunales Terminvergabe- und Besuchersteuerungssystem.
+    Ermoeglicht Online-Terminbuchung, Walk-in-Warteschlange,
+    Hardware-Display-Integration und Mitarbeiter-Aufrufsteuerung.
+
+    ## Architektur
+    - Multi-Tenant via tenantSlug im Pfad
+    - Fastify/Node.js Backend mit Prisma ORM
+    - WebSocket fuer Echtzeit-Updates (Queue-Display, Counter-Display)
+    - Keycloak fuer Authentifizierung (Staff/Admin)
+
+    ## Buchungsablauf
+    1. Services abrufen (GET /:tenantSlug/services)
+    2. Standorte abrufen (GET /:tenantSlug/locations)
+    3. Verfuegbare Tage pruefen (GET /booking/days)
+    4. Zeitslots abrufen (GET /booking/slots)
+    5. Termin buchen (POST /booking/create)
+    6. Buchungscode erhalten -> Stornierung/Check-in moeglich
+  version: 1.0.0
+  contact:
+    name: aitema GmbH
+    url: https://aitema.de
+    email: support@aitema.de
+  license:
+    name: EUPL-1.2
+    url: https://eupl.eu/1.2/de/
+
+servers:
+  - url: http://localhost:3000
+    description: Lokale Entwicklungsumgebung
+  - url: https://termin.aitema.de
+    description: Produktion
+
+tags:
+  - name: Public - Services
+    description: Dienstleistungskatalog (oeffentlich)
+  - name: Public - Locations
+    description: Standorte und Oeffnungszeiten (oeffentlich)
+  - name: Booking
+    description: Terminbuchung und -verwaltung
+  - name: Queue
+    description: Warteschlangenverwaltung (Walk-in)
+  - name: Display
+    description: Hardware-Display-Integration
+  - name: Auth
+    description: Authentifizierung via Keycloak
+  - name: Admin
+    description: Mandanten- und Ressourcenverwaltung
+
+paths:
+  /api/v1/{tenantSlug}/services:
+    get:
+      tags: [Public - Services]
+      summary: Dienstleistungen abrufen
+      description: Gibt alle aktiven Dienstleistungen einer Kommune zurueck, optional nach Standort und Kategorie gefiltert.
+      operationId: listServices
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: locationId
+          in: query
+          description: Filter nach Standort-ID
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter nach Kategorie
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dienstleistungen mit Kategorien
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  categories:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Service'
+        '404':
+          description: Kommune nicht gefunden
+
+  /api/v1/{tenantSlug}/locations:
+    get:
+      tags: [Public - Locations]
+      summary: Standorte abrufen
+      description: Gibt alle aktiven Standorte einer Kommune zurueck, inkl. zugeordneter Dienstleistungen.
+      operationId: listLocations
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      responses:
+        '200':
+          description: Standortliste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  locations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Location'
+        '404':
+          description: Kommune nicht gefunden
+
+  /api/v1/{tenantSlug}/booking/days:
+    get:
+      tags: [Booking]
+      summary: Verfuegbare Tage im Monat
+      description: Gibt zurueck, an welchen Tagen eines Monats Termine verfuegbar sind.
+      operationId: getAvailableDays
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: month
+          in: query
+          required: true
+          description: Format YYYY-MM
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+      responses:
+        '200':
+          description: Verfuegbare Tage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        available:
+                          type: boolean
+                        slotCount:
+                          type: integer
+
+  /api/v1/{tenantSlug}/booking/slots:
+    get:
+      tags: [Booking]
+      summary: Verfuegbare Zeitslots abrufen
+      description: Gibt die verfuegbaren Zeitfenster fuer ein bestimmtes Datum zurueck.
+      operationId: getAvailableSlots
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          description: Format YYYY-MM-DD
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+        - name: resourceId
+          in: query
+          description: Optionale Ressourcen-ID (z.B. bestimmter Schalter)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verfuegbare Slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimeSlot'
+                  count:
+                    type: integer
+
+  /api/v1/{tenantSlug}/booking/create:
+    post:
+      tags: [Booking]
+      summary: Neuen Termin buchen
+      description: |
+        Erstellt einen neuen Termin. Bei Erfolg wird ein Buchungscode
+        zurueckgegeben, mit dem der Termin storniert oder eingecheckt werden kann.
+      operationId: createBooking
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+      responses:
+        '201':
+          description: Termin erfolgreich gebucht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Ungueltige Buchungsanfrage oder Slot nicht verfuegbar
+
+  /api/v1/{tenantSlug}/booking/cancel:
+    post:
+      tags: [Booking]
+      summary: Termin stornieren
+      operationId: cancelBooking
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingCode]
+              properties:
+                bookingCode:
+                  type: string
+                  minLength: 5
+                  maxLength: 20
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Termin storniert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+
+  /api/v1/{tenantSlug}/booking/lookup/{bookingCode}:
+    get:
+      tags: [Booking]
+      summary: Termin per Buchungscode nachschlagen
+      operationId: lookupBooking
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: bookingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 5
+            maxLength: 20
+      responses:
+        '200':
+          description: Termindetails
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+        '404':
+          description: Buchungscode nicht gefunden
+
+  /api/v1/appointments/{bookingRef}/cancel:
+    post:
+      tags: [Booking]
+      summary: Termin stornieren (direkt per Ref)
+      operationId: cancelAppointmentDirect
+      parameters:
+        - name: bookingRef
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Termin storniert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Stornierung nicht moeglich
+
+  /api/v1/appointments/{bookingRef}/checkin:
+    post:
+      tags: [Booking]
+      summary: Fuer Termin einchecken
+      operationId: checkIn
+      parameters:
+        - name: bookingRef
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Erfolgreich eingecheckt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+
+  /api/v1/{tenantSlug}/queue/status/{locationId}:
+    get:
+      tags: [Queue]
+      summary: Warteschlangen-Status abrufen
+      description: Oeffentlicher Endpunkt fuer den aktuellen Warteschlangenstatus.
+      operationId: getQueueStatus
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Warteschlangen-Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/QueueStatus'
+
+  /api/v1/{tenantSlug}/queue/ticket:
+    post:
+      tags: [Queue]
+      summary: Wartenummer ziehen
+      description: Erstellt ein neues Warteschlangen-Ticket (Walk-in am Kiosk oder online).
+      operationId: issueQueueTicket
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serviceId, locationId]
+              properties:
+                serviceId:
+                  type: string
+                locationId:
+                  type: string
+                citizenName:
+                  type: string
+                  maxLength: 200
+      responses:
+        '201':
+          description: Wartenummer erstellt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/QueueTicket'
+
+  /api/v1/{tenantSlug}/queue/call-next:
+    post:
+      tags: [Queue]
+      summary: Naechste Nummer aufrufen (Mitarbeiter)
+      operationId: callNextTicket
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locationId, resourceId, counterName]
+              properties:
+                locationId:
+                  type: string
+                resourceId:
+                  type: string
+                counterName:
+                  type: string
+                  maxLength: 50
+      responses:
+        '200':
+          description: Ticket aufgerufen (oder null wenn leer)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/QueueTicket'
+                    nullable: true
+                  message:
+                    type: string
+
+  /api/v1/{tenantSlug}/queue/start-serving:
+    post:
+      tags: [Queue]
+      summary: Bedienung starten
+      operationId: startServing
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketId]
+              properties:
+                ticketId:
+                  type: string
+      responses:
+        '200':
+          description: Bedienung gestartet
+
+  /api/v1/{tenantSlug}/queue/complete:
+    post:
+      tags: [Queue]
+      summary: Bedienung abschliessen
+      operationId: completeTicket
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketId]
+              properties:
+                ticketId:
+                  type: string
+      responses:
+        '200':
+          description: Bedienung abgeschlossen
+
+  /api/v1/{tenantSlug}/queue/display/{locationId}:
+    get:
+      tags: [Queue]
+      summary: Aufrufanzeige-Daten
+      description: Daten fuer die Aufrufanzeige im Wartebereich.
+      operationId: getQueueDisplay
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aufrufanzeige-Daten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueDisplay'
+
+  /api/v1/{tenantSlug}/display/register:
+    post:
+      tags: [Display]
+      summary: Display-Geraet registrieren
+      operationId: registerDisplay
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locationId, deviceId, name, type]
+              properties:
+                locationId:
+                  type: string
+                deviceId:
+                  type: string
+                  maxLength: 100
+                name:
+                  type: string
+                  maxLength: 200
+                type:
+                  type: string
+                  enum: [QUEUE_BOARD, COUNTER_DISPLAY, INFO_SCREEN, CHECK_IN_KIOSK]
+      responses:
+        '201':
+          description: Display registriert
+
+  /api/v1/{tenantSlug}/display/heartbeat/{deviceId}:
+    post:
+      tags: [Display]
+      summary: Display-Heartbeat senden
+      operationId: displayHeartbeat
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Heartbeat empfangen
+
+  /api/v1/{tenantSlug}/display/list/{locationId}:
+    get:
+      tags: [Display]
+      summary: Displays eines Standorts auflisten
+      operationId: listDisplays
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Display-Liste
+
+  /api/v1/{tenantSlug}/display/board/{locationId}:
+    get:
+      tags: [Display]
+      summary: Aufrufanzeige-Daten fuer Display
+      operationId: getQueueBoardData
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Board-Daten fuer Display-Rendering
+
+  /api/auth/login:
+    get:
+      tags: [Auth]
+      summary: Login via Keycloak
+      description: Leitet zum Keycloak-Login weiter.
+      operationId: login
+      parameters:
+        - name: redirect_uri
+          in: query
+          description: Redirect-URL nach Login
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect zu Keycloak
+
+  /api/auth/callback:
+    get:
+      tags: [Auth]
+      summary: Keycloak Callback
+      description: Verarbeitet den Keycloak-Callback nach erfolgreichem Login.
+      operationId: authCallback
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect zum Frontend mit gesetzten Cookies
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Token erneuern
+      operationId: refreshToken
+      responses:
+        '200':
+          description: Token erneuert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  expiresIn:
+                    type: integer
+        '401':
+          description: Kein Refresh-Token vorhanden
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Abmelden
+      operationId: logout
+      parameters:
+        - name: redirect_uri
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Logout-URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logoutUrl:
+                    type: string
+                    format: uri
+
+  /api/v1/staff/queue/call-next:
+    post:
+      tags: [Queue]
+      summary: Naechste Nummer aufrufen (Legacy-Staff-Endpunkt)
+      operationId: staffCallNext
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, locationId, counterId]
+              properties:
+                tenantId:
+                  type: string
+                locationId:
+                  type: string
+                counterId:
+                  type: string
+                serviceId:
+                  type: string
+      responses:
+        '200':
+          description: Naechstes Ticket oder leere Warteschlange
+
+  /api/v1/admin/tenants:
+    get:
+      tags: [Admin]
+      summary: Alle Mandanten auflisten
+      operationId: adminListTenants
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Mandantenliste
+    post:
+      tags: [Admin]
+      summary: Mandant erstellen
+      operationId: adminCreateTenant
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+      responses:
+        '201':
+          description: Mandant erstellt
+
+  /api/v1/admin/tenants/{id}:
+    get:
+      tags: [Admin]
+      summary: Mandant-Details
+      operationId: adminGetTenant
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mandant-Details
+    put:
+      tags: [Admin]
+      summary: Mandant aktualisieren
+      operationId: adminUpdateTenant
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+      responses:
+        '200':
+          description: Mandant aktualisiert
+
+  /api/v1/admin/tenants/{tenantId}/locations:
+    get:
+      tags: [Admin]
+      summary: Standorte eines Mandanten
+      operationId: adminListLocations
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Standortliste
+    post:
+      tags: [Admin]
+      summary: Standort erstellen
+      operationId: adminCreateLocation
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationCreate'
+      responses:
+        '201':
+          description: Standort erstellt
+
+  /api/v1/admin/locations/{id}:
+    put:
+      tags: [Admin]
+      summary: Standort aktualisieren
+      operationId: adminUpdateLocation
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationCreate'
+      responses:
+        '200':
+          description: Standort aktualisiert
+
+  /api/v1/admin/tenants/{tenantId}/services:
+    get:
+      tags: [Admin]
+      summary: Dienstleistungen eines Mandanten
+      operationId: adminListServices
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dienstleistungsliste
+    post:
+      tags: [Admin]
+      summary: Dienstleistung erstellen
+      operationId: adminCreateService
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '201':
+          description: Dienstleistung erstellt
+
+  /api/v1/admin/services/{id}:
+    put:
+      tags: [Admin]
+      summary: Dienstleistung aktualisieren
+      operationId: adminUpdateService
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '200':
+          description: Dienstleistung aktualisiert
+    delete:
+      tags: [Admin]
+      summary: Dienstleistung deaktivieren
+      operationId: adminDeleteService
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dienstleistung deaktiviert
+
+  /api/v1/admin/tenants/{tenantId}/resources:
+    get:
+      tags: [Admin]
+      summary: Ressourcen eines Mandanten
+      operationId: adminListResources
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          description: Filter nach Standort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ressourcenliste
+    post:
+      tags: [Admin]
+      summary: Ressource erstellen
+      operationId: adminCreateResource
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locationId, name, type]
+              properties:
+                locationId:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [counter, room, online]
+                capacity:
+                  type: integer
+                  default: 1
+      responses:
+        '201':
+          description: Ressource erstellt
+
+  /api/v1/admin/tenants/{tenantId}/dashboard:
+    get:
+      tags: [Admin]
+      summary: Dashboard-Statistiken
+      operationId: adminDashboard
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dashboard-Daten
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DashboardStats'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: JWT-Token via Keycloak (als httpOnly Cookie)
+
+  parameters:
+    TenantSlug:
+      name: tenantSlug
+      in: path
+      required: true
+      description: URL-Slug der Kommune (z.B. stadt-musterstadt)
+      schema:
+        type: string
+
+  schemas:
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        durationMinutes:
+          type: integer
+        requiredDocuments:
+          type: array
+          items:
+            type: string
+        fee:
+          type: string
+        onlineBookable:
+          type: boolean
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        latitude:
+          type: number
+        longitude:
+          type: number
+        openingHours:
+          type: object
+        active:
+          type: boolean
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+
+    TimeSlot:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        available:
+          type: boolean
+        resourceId:
+          type: string
+        resourceName:
+          type: string
+
+    BookingRequest:
+      type: object
+      required: [serviceId, locationId, slotStart, citizenName]
+      properties:
+        serviceId:
+          type: string
+        locationId:
+          type: string
+        resourceId:
+          type: string
+        slotStart:
+          type: string
+          format: date-time
+        citizenName:
+          type: string
+          minLength: 2
+          maxLength: 200
+        citizenEmail:
+          type: string
+          format: email
+        citizenPhone:
+          type: string
+          minLength: 5
+          maxLength: 30
+        notes:
+          type: string
+          maxLength: 1000
+        preferredLanguage:
+          type: string
+          enum: [de, en, tr, ar, uk]
+          default: de
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+        bookingCode:
+          type: string
+        bookingRef:
+          type: string
+        status:
+          type: string
+          enum: [BOOKED, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW]
+        serviceId:
+          type: string
+        serviceName:
+          type: string
+        locationId:
+          type: string
+        locationName:
+          type: string
+        slotStart:
+          type: string
+          format: date-time
+        slotEnd:
+          type: string
+          format: date-time
+        citizenName:
+          type: string
+        citizenEmail:
+          type: string
+        citizenPhone:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    QueueTicket:
+      type: object
+      properties:
+        id:
+          type: string
+        ticketNumber:
+          type: string
+          description: Angezeigte Wartenummer (z.B. A042)
+        status:
+          type: string
+          enum: [WAITING, CALLED, SERVING, COMPLETED, CANCELLED]
+        serviceId:
+          type: string
+        locationId:
+          type: string
+        counterName:
+          type: string
+        citizenName:
+          type: string
+        estimatedWait:
+          type: integer
+          description: Geschaetzte Wartezeit in Minuten
+        position:
+          type: integer
+          description: Position in der Warteschlange
+        createdAt:
+          type: string
+          format: date-time
+        calledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    QueueStatus:
+      type: object
+      properties:
+        locationId:
+          type: string
+        totalWaiting:
+          type: integer
+        totalServing:
+          type: integer
+        averageWaitMinutes:
+          type: number
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              serviceId:
+                type: string
+              serviceName:
+                type: string
+              waiting:
+                type: integer
+              estimatedWait:
+                type: integer
+
+    QueueDisplay:
+      type: object
+      properties:
+        currentlyCalled:
+          type: array
+          items:
+            type: object
+            properties:
+              ticketNumber:
+                type: string
+              counterName:
+                type: string
+              serviceName:
+                type: string
+        waiting:
+          type: integer
+        lastUpdated:
+          type: string
+          format: date-time
+
+    TenantCreate:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        config:
+          type: object
+
+    LocationCreate:
+      type: object
+      required: [name, address, city, postalCode]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        latitude:
+          type: number
+        longitude:
+          type: number
+        openingHours:
+          type: object
+
+    ServiceCreate:
+      type: object
+      required: [name, durationMinutes]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        durationMinutes:
+          type: integer
+        requiredDocuments:
+          type: array
+          items:
+            type: string
+        fee:
+          type: string
+        onlineBookable:
+          type: boolean
+          default: true
+
+    DashboardStats:
+      type: object
+      properties:
+        todayAppointments:
+          type: integer
+        todayCompleted:
+          type: integer
+        todayNoShow:
+          type: integer
+        currentlyWaiting:
+          type: integer
+        currentlyServing:
+          type: integer
+        averageWaitMinutes:
+          type: number
+        averageServiceMinutes:
+          type: number
+        utilizationPercent:
+          type: number

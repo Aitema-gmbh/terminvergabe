@@ -1,0 +1,459 @@
+{
+  "info": {
+    "name": "aitema|Termin API",
+    "description": "Kommunales Terminvergabe- und Besuchersteuerungssystem - Postman Collection\n\nBeinhaltet Buchung, Warteschlange, Display-Integration und Admin.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "access_token", "type": "string" },
+      { "key": "value", "value": "{{access_token}}", "type": "string" },
+      { "key": "in", "value": "cookie", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "tenant_slug", "value": "stadt-musterstadt", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "service_id", "value": "", "type": "string" },
+    { "key": "location_id", "value": "", "type": "string" },
+    { "key": "booking_code", "value": "", "type": "string" },
+    { "key": "booking_ref", "value": "", "type": "string" },
+    { "key": "tenant_id", "value": "", "type": "string" },
+    { "key": "ticket_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Public - Services & Locations",
+      "item": [
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/{{tenant_slug}}/services?category=Buergerbuero",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "{{tenant_slug}}", "services"],
+              "query": [
+                { "key": "locationId", "value": "{{location_id}}", "disabled": true },
+                { "key": "category", "value": "Buergerbuero", "disabled": true }
+              ]
+            },
+            "auth": { "type": "noauth" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.services && jsonData.services.length > 0) {",
+                  "    pm.collectionVariables.set('service_id', jsonData.services[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Locations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/locations",
+            "auth": { "type": "noauth" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.locations && jsonData.locations.length > 0) {",
+                  "    pm.collectionVariables.set('location_id', jsonData.locations[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Get Available Days",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/{{tenant_slug}}/booking/days?serviceId={{service_id}}&locationId={{location_id}}&month=2026-03",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "{{tenant_slug}}", "booking", "days"],
+              "query": [
+                { "key": "serviceId", "value": "{{service_id}}" },
+                { "key": "locationId", "value": "{{location_id}}" },
+                { "key": "month", "value": "2026-03" }
+              ]
+            },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Get Available Slots",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/{{tenant_slug}}/booking/slots?serviceId={{service_id}}&locationId={{location_id}}&date=2026-03-15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "{{tenant_slug}}", "booking", "slots"],
+              "query": [
+                { "key": "serviceId", "value": "{{service_id}}" },
+                { "key": "locationId", "value": "{{location_id}}" },
+                { "key": "date", "value": "2026-03-15" }
+              ]
+            },
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/booking/create",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": \"{{service_id}}\",\n  \"locationId\": \"{{location_id}}\",\n  \"slotStart\": \"2026-03-15T09:00:00.000Z\",\n  \"citizenName\": \"Max Mustermann\",\n  \"citizenEmail\": \"max@example.com\",\n  \"citizenPhone\": \"+49 123 456789\",\n  \"notes\": \"Personalausweis mitbringen\",\n  \"preferredLanguage\": \"de\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data) {",
+                  "    if (jsonData.data.bookingCode) pm.collectionVariables.set('booking_code', jsonData.data.bookingCode);",
+                  "    if (jsonData.data.bookingRef) pm.collectionVariables.set('booking_ref', jsonData.data.bookingRef);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lookup Booking",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/booking/lookup/{{booking_code}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/booking/cancel",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingCode\": \"{{booking_code}}\",\n  \"reason\": \"Terminaenderung\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel by BookingRef",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/appointments/{{booking_ref}}/cancel",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Check-In",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/appointments/{{booking_ref}}/checkin",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Queue",
+      "item": [
+        {
+          "name": "Get Queue Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/status/{{location_id}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Issue Queue Ticket",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/ticket",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": \"{{service_id}}\",\n  \"locationId\": \"{{location_id}}\",\n  \"citizenName\": \"Anna Beispiel\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('ticket_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Queue Display Data",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/display/{{location_id}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Call Next (Staff)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/call-next",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{location_id}}\",\n  \"resourceId\": \"counter-1\",\n  \"counterName\": \"Schalter 1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Start Serving",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/start-serving",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": \"{{ticket_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Complete Serving",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/queue/complete",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": \"{{ticket_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff Call Next (Legacy)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/staff/queue/call-next",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{tenant_id}}\",\n  \"locationId\": \"{{location_id}}\",\n  \"counterId\": \"counter-1\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Display",
+      "item": [
+        {
+          "name": "Register Display",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/display/register",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{location_id}}\",\n  \"deviceId\": \"display-wartezimmer-01\",\n  \"name\": \"Aufrufanzeige Wartezimmer\",\n  \"type\": \"QUEUE_BOARD\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Display Heartbeat",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/display/heartbeat/display-wartezimmer-01",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "List Displays",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/display/list/{{location_id}}",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Get Board Data",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/{{tenant_slug}}/display/board/{{location_id}}",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Redirect)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/login",
+            "auth": { "type": "noauth" }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants"
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/tenants",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Stadt Musterstadt\",\n  \"slug\": \"stadt-musterstadt\",\n  \"contactEmail\": \"termin@musterstadt.de\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('tenant_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Tenant",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}"
+          }
+        },
+        {
+          "name": "List Locations (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/locations"
+          }
+        },
+        {
+          "name": "Create Location",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/locations",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Buergerbuero Mitte\",\n  \"address\": \"Rathausplatz 1\",\n  \"city\": \"Musterstadt\",\n  \"postalCode\": \"12345\",\n  \"phone\": \"+49 123 456 0\",\n  \"email\": \"buergerbuero@musterstadt.de\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Services (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/services"
+          }
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/services",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Personalausweis beantragen\",\n  \"description\": \"Neubeantragung oder Verlaengerung des Personalausweises\",\n  \"category\": \"Buergerbuero\",\n  \"durationMinutes\": 15,\n  \"requiredDocuments\": [\"Biometrisches Passfoto\", \"Alter Personalausweis\"],\n  \"fee\": \"37,00 EUR\",\n  \"onlineBookable\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "List Resources",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/resources"
+          }
+        },
+        {
+          "name": "Create Resource",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/resources",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{location_id}}\",\n  \"name\": \"Schalter 1\",\n  \"type\": \"counter\",\n  \"capacity\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/dashboard"
+          }
+        }
+      ]
+    }
+  ]
+}
