@@ -1,0 +1,42 @@
+name: CI – Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-frontend:
+    name: Angular Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'aitema-hinweis/client/app/package-lock.json'
+      - name: Abhängigkeiten installieren
+        working-directory: aitema-hinweis/client/app
+        run: npm ci
+      - name: Build ausführen
+        working-directory: aitema-hinweis/client/app
+        run: npm run build --if-present
+      - name: Tests ausführen
+        working-directory: aitema-hinweis/client/app
+        run: npm test --if-present -- --watch=false
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+        working-directory: aitema-hinweis/client/app
+      - run: npm run lint --if-present
+        working-directory: aitema-hinweis/client/app

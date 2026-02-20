@@ -1,11 +1,11 @@
 <script lang="ts">
   import '../app.css';
-  import { page } from '/stores';
+  import { page } from '$app/stores';
 
-  $: isBooking = .url.pathname.startsWith('/buchen');
-  $: isStaff   = .url.pathname.startsWith('/staff');
-  $: isKiosk   = .url.pathname.startsWith('/display/kiosk') ||
-                  .url.pathname.startsWith('/display/');
+  $: isBooking = $page.url.pathname.startsWith('/buchen');
+  $: isStaff   = $page.url.pathname.startsWith('/staff');
+  $: isKiosk   = $page.url.pathname.startsWith('/display/kiosk') ||
+                  $page.url.pathname.startsWith('/display/') ;
 
   const steps = ['Standort', 'Dienstleistung', 'Termin', 'Daten', 'Bestaetigung'];
 </script>
