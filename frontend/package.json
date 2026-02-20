@@ -9,7 +9,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,svelte,js,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,svelte,js,json,css,md}\""
+    "format:check": "prettier --check \"src/**/*.{ts,svelte,js,json,css,md}\"",
+    "test:load": "k6 run ../tests/load/load-test.js"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^2.0.0",
