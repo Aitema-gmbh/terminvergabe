@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "group:allNonMajor",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["dependencies"],
+      "matchPackagePatterns": ["^@sveltejs", "^svelte"],
+      "groupName": "SvelteKit / Svelte",
+      "groupSlug": "sveltekit"
+    },
+    {
+      "matchPackagePatterns": ["^vite", "^@vitejs"],
+      "groupName": "Vite",
+      "automerge": true
+    }
+  ],
+  "schedule": ["every weekend"],
+  "timezone": "Europe/Berlin",
+  "labels": ["dependencies", "renovate"],
+  "commitMessagePrefix": "chore(deps):"
+}
