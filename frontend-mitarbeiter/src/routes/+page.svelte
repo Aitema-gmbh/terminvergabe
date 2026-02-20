@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  let todayStats = $state({
+  let todayStats = ({
     appointments: 0,
     completed: 0,
     waiting: 0,
     noShow: 0,
   });
 
-  let currentTime = $state(new Date());
+  let currentTime = (new Date());
 
   onMount(() => {
     const timer = setInterval(() => {
@@ -20,114 +20,108 @@
 
 <svelte:head>
   <title>aitema|Termin - Mitarbeiter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
 </svelte:head>
 
-<main class="dashboard">
-  <header>
-    <h1>aitema<span class="accent">|</span>Termin</h1>
-    <div class="clock">{currentTime.toLocaleTimeString("de-DE")}</div>
-  </header>
+<main class="staff-main">
+  <div class="staff-dashboard">
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <span class="stat-value">{todayStats.appointments}</span>
-      <span class="stat-label">Termine heute</span>
+    <!-- HEADER -->
+    <header class="staff-header">
+      <div style="display:flex;align-items:center;gap:0.875rem;">
+        <div class="staff-logo-icon">
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <rect width="28" height="28" rx="7" fill="#3b82f6"/>
+            <rect x="7" y="7" width="14" height="2" rx="1" fill="white"/>
+            <rect x="7" y="11" width="10" height="2" rx="1" fill="white"/>
+            <rect x="7" y="15" width="12" height="2" rx="1" fill="white"/>
+            <rect x="7" y="19" width="8" height="2" rx="1" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <h1 style="font-size:1.25rem;margin:0;">aitema<span style="color:#3b82f6;">|</span>Termin</h1>
+          <p style="font-size:0.8125rem;color:var(--aitema-muted);margin:0;">Mitarbeiter-Dashboard</p>
+        </div>
+      </div>
+      <div class="staff-clock" aria-live="polite" aria-label="Aktuelle Uhrzeit">
+        {currentTime.toLocaleTimeString("de-DE")}
+      </div>
+    </header>
+
+    <!-- STAT GRID -->
+    <div class="stat-grid" role="region" aria-label="Tagesstatistik">
+      <div class="stat-card blue">
+        <span class="stat-icon" aria-hidden="true">&#128197;</span>
+        <div class="stat-number">{todayStats.appointments}</div>
+        <div class="stat-label">Termine heute</div>
+      </div>
+      <div class="stat-card green">
+        <span class="stat-icon" aria-hidden="true">&#10003;</span>
+        <div class="stat-number">{todayStats.completed}</div>
+        <div class="stat-label">Erledigt</div>
+      </div>
+      <div class="stat-card amber">
+        <span class="stat-icon" aria-hidden="true">&#9201;</span>
+        <div class="stat-number">{todayStats.waiting}</div>
+        <div class="stat-label">Wartend</div>
+      </div>
+      <div class="stat-card red">
+        <span class="stat-icon" aria-hidden="true">&#215;</span>
+        <div class="stat-number">{todayStats.noShow}</div>
+        <div class="stat-label">Nicht erschienen</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <span class="stat-value">{todayStats.completed}</span>
-      <span class="stat-label">Erledigt</span>
+
+    <!-- ACTION GRID -->
+    <div class="action-grid" role="navigation" aria-label="Schnellzugriff">
+      <a href="/queue" class="action-tile primary">
+        <span class="action-tile-icon" aria-hidden="true">&#128101;</span>
+        Warteschlange
+      </a>
+      <a href="/appointments" class="action-tile">
+        <span class="action-tile-icon" aria-hidden="true">&#128197;</span>
+        Termine
+      </a>
+      <a href="/stats" class="action-tile">
+        <span class="action-tile-icon" aria-hidden="true">&#128202;</span>
+        Statistik
+      </a>
     </div>
-    <div class="stat-card warning">
-      <span class="stat-value">{todayStats.waiting}</span>
-      <span class="stat-label">Wartend</span>
+
+    <!-- INFO BANNER -->
+    <div class="alert alert-info" role="status">
+      <span class="alert-icon">&#8505;</span>
+      <span>Alle Daten werden in Echtzeit aktualisiert. Letzte Aktualisierung: {currentTime.toLocaleTimeString("de-DE")}</span>
     </div>
-    <div class="stat-card danger">
-      <span class="stat-value">{todayStats.noShow}</span>
-      <span class="stat-label">Nicht erschienen</span>
-    </div>
+
   </div>
-
-  <nav class="quick-actions">
-    <a href="/queue" class="action-btn primary">Warteschlange</a>
-    <a href="/appointments" class="action-btn">Termine</a>
-    <a href="/stats" class="action-btn">Statistik</a>
-  </nav>
 </main>
 
 <style>
-  .dashboard {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  .staff-main {
+    min-height: 100vh;
+    background: var(--aitema-slate-50, #f8fafc);
+    font-family: "Inter", system-ui, sans-serif;
   }
 
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    border-bottom: 2px solid #003366;
+  .staff-logo-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #0f172a;
+    display: flex; align-items: center; justify-content: center;
   }
 
-  header h1 { margin: 0; font-size: 1.5rem; color: #003366; }
-  .accent { color: #ff9900; }
-  .clock { font-size: 1.5rem; font-weight: 700; color: #003366; font-variant-numeric: tabular-nums; }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 2rem 0;
+  .staff-clock {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--aitema-navy, #0f172a);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
   }
 
-  .stat-card {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    border-left: 4px solid #003366;
+  /* re-use global classes but define locally if needed */
+  :global(.stat-card.red::before) {
+    background: linear-gradient(to right, #dc2626, #ef4444);
   }
-
-  .stat-card.warning { border-left-color: #ff9900; }
-  .stat-card.danger { border-left-color: #cc0000; }
-
-  .stat-value {
-    display: block;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #003366;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .quick-actions {
-    display: flex;
-    gap: 1rem;
-    margin: 2rem 0;
-  }
-
-  .action-btn {
-    flex: 1;
-    padding: 1rem;
-    text-align: center;
-    background: white;
-    border: 2px solid #003366;
-    border-radius: 8px;
-    color: #003366;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.2s;
-  }
-
-  .action-btn:hover { background: #003366; color: white; }
-  .action-btn.primary { background: #003366; color: white; }
-  .action-btn.primary:hover { background: #004d99; }
 </style>
