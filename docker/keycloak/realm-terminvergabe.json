@@ -1,0 +1,184 @@
+{
+  "realm": "terminvergabe",
+  "displayName": "aitema|Termin",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Full administrative access",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "standortleiter",
+            "sachbearbeiter",
+            "display"
+          ]
+        }
+      },
+      {
+        "name": "standortleiter",
+        "description": "Location manager - manages staff and all appointments",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "sachbearbeiter",
+            "display"
+          ]
+        }
+      },
+      {
+        "name": "sachbearbeiter",
+        "description": "Clerk - manages appointments",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "display"
+          ]
+        }
+      },
+      {
+        "name": "display",
+        "description": "Display terminal - read-only queue view"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "termin-frontend",
+      "name": "aitema Termin Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "https://terminvergabe.aitema.de/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "https://terminvergabe.aitema.de"
+      ],
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "roles"
+      ]
+    },
+    {
+      "clientId": "termin-backend",
+      "name": "aitema Termin Backend",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "secret": "termin-backend-secret-change-in-prod",
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "roles"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@aitema.local",
+      "firstName": "Admin",
+      "lastName": "Dev",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "default"
+        ]
+      }
+    },
+    {
+      "username": "sachbearbeiter",
+      "email": "sachbearbeiter@aitema.local",
+      "firstName": "Test",
+      "lastName": "Sachbearbeiter",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "sachbearbeiter"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "default"
+        ]
+      }
+    },
+    {
+      "username": "display",
+      "email": "display@aitema.local",
+      "firstName": "Display",
+      "lastName": "Terminal",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "display"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "default"
+        ]
+      }
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "roles",
+    "profile",
+    "email",
+    "web-origins"
+  ],
+  "defaultOptionalClientScopes": [
+    "offline_access",
+    "phone",
+    "address"
+  ]
+}

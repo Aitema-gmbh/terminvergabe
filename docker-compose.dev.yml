@@ -1,0 +1,97 @@
+version: '3.9'
+
+services:
+  # ─── Keycloak ──────────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: termin-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8180
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_DB: dev-file
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./docker/keycloak/realm-terminvergabe.json:/opt/keycloak/data/import/realm-terminvergabe.json:ro
+      - keycloak_data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8180 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+    networks:
+      - termin-net
+
+  # ─── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: termin-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - termin-net
+
+  # ─── Postgres ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: termin-postgres
+    environment:
+      POSTGRES_USER: termin
+      POSTGRES_PASSWORD: termin
+      POSTGRES_DB: terminvergabe
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U termin -d terminvergabe"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - termin-net
+
+  # ─── Backend ───────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: termin-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://termin:termin@postgres:5432/terminvergabe
+      REDIS_URL: redis://redis:6379
+      KEYCLOAK_URL: http://keycloak:8180
+      KEYCLOAK_REALM: terminvergabe
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - termin-net
+
+volumes:
+  keycloak_data:
+  postgres_data:
+
+networks:
+  termin-net:
+    driver: bridge
