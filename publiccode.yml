@@ -1,0 +1,105 @@
+publiccodeYmlVersion: "0.4"
+
+name: aitema Terminvergabe
+applicationSuite: aitema GovTech Suite
+url: "https://github.com/Aitema-gmbh/terminvergabe"
+landingURL: "https://aitema.de/loesungen/terminvergabe"
+
+createdAt: "2023-01-01"
+releaseDate: "2024-01-01"
+logo: "https://aitema.de/logo.svg"
+
+softwareVersion: "1.0.0"
+developmentStatus: stable
+softwareType: standalone/web
+
+platforms:
+  - web
+  - linux
+
+categories:
+  - it-service-management
+  - government
+  - workflow-management
+
+roadmap: "https://github.com/Aitema-gmbh/terminvergabe/issues"
+
+legal:
+  license: AGPL-3.0-only
+  mainCopyrightOwner: aitema GmbH
+  repoOwner: aitema GmbH
+
+maintenance:
+  type: internal
+  contacts:
+    - name: aitema GmbH
+      email: kontakt@aitema.de
+      affiliation: aitema GmbH
+
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - de
+
+description:
+  de:
+    localisedName: aitema Terminvergabe
+    genericName: Behoerdliches Terminbuchungssystem
+    shortDescription: >-
+      Open-Source-Terminbuchungssystem fuer Buergerbueros und Behoerden.
+      OZG-konform, SvelteKit-Frontend, vollstaendig selbst-hostbar.
+    longDescription: >-
+      Das aitema Terminvergabesystem ermoeglicht Buergerinnen und Buergern
+      die einfache Online-Buchung von Behoerdenterminen. Es umfasst ein
+      modernes Buerger-Frontend fuer die Terminbuchung, ein Kiosk-Display
+      fuer Wartenummern-Anzeige sowie ein Mitarbeiter-Dashboard fuer
+      die Terminverwaltung. Entwickelt mit SvelteKit fuer optimale
+      Performance. Unterstuetzt mehrere Standorte und Dienstleistungen.
+      Keine Lizenzkosten, DSGVO-konform.
+    features:
+      - Online-Terminbuchung fuer Buerger (5-Schritt-Wizard)
+      - Kiosk-Display fuer Wartenummern-Anzeige
+      - Mitarbeiter-Dashboard mit Live-Warteschlange
+      - Unterstuetzung mehrerer Standorte und Dienstleistungen
+      - QR-Code-Bestaetigung fuer Buerger
+      - OZG-konform (Online-Zugangs-Gesetz)
+      - DSGVO-konform und selbst-hostbar
+    screenshots:
+      - "https://aitema.de/screenshots/termin-buchung.png"
+
+  en:
+    localisedName: aitema Appointment System
+    genericName: Government Appointment Booking System
+    shortDescription: >-
+      Open-source appointment booking system for citizen offices and authorities.
+      OZG-compliant, SvelteKit frontend, self-hostable.
+    longDescription: >-
+      The aitema appointment system enables citizens to easily book government
+      appointments online. Includes citizen booking frontend, kiosk display
+      for queue management, and staff dashboard. GDPR-compliant, no license costs.
+    features:
+      - Online appointment booking (5-step wizard)
+      - Kiosk display for queue management
+      - Staff dashboard with live queue
+      - Multi-location and multi-service support
+      - GDPR-compliant and self-hostable
+
+intendedAudience:
+  countries:
+    - de
+    - at
+    - ch
+  scope:
+    - government
+    - local-authorities
+
+dependsOn:
+  open:
+    - name: SvelteKit
+      versionMin: "2"
+    - name: Node.js
+      versionMin: "20"
+    - name: PostgreSQL
+      versionMin: "15"
+    - name: Docker
+      versionMin: "24"
