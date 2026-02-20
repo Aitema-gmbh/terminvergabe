@@ -1,45 +1,36 @@
 ## Beschreibung
 
-<!-- Beschreibe die Aenderungen in diesem PR kurz und praegnant. -->
+<!-- Beschreibe die Änderungen in diesem Pull Request -->
 
-## Art der Aenderung
+## Art der Änderung
 
-- [ ] Bugfix (nicht-brechende Aenderung, behebt ein Problem)
-- [ ] Neues Feature (nicht-brechende Aenderung, fuegt Funktionalitaet hinzu)
-- [ ] Brechende Aenderung (Fix oder Feature, das bestehende Funktionalitaet aendern wuerde)
-- [ ] Refactoring (keine funktionale Aenderung)
-- [ ] Dokumentation
-- [ ] CI/CD / Infrastruktur
-
-## Verwandtes Issue
-
-Closes #<!-- Issue-Nummer -->
-
-## Betroffene Komponenten
-
-- [ ] Backend (API / Prisma)
-- [ ] Frontend Buerger
-- [ ] Frontend Mitarbeiter
-- [ ] Frontend Admin
-- [ ] Hardware-Integration
-- [ ] Infrastruktur / Docker
-
-## Datenbankmigrationen
-
-- [ ] Nein
-- [ ] Ja - Prisma Migration erstellt: `prisma/migrations/...`
-- [ ] Breaking Migration (benoetigt Datenmigration)
-
-## Testplan
-
-- [ ] Unit Tests hinzugefuegt / aktualisiert (vitest)
-- [ ] Manuell getestet
-- [ ] svelte-check ohne Fehler
+- [ ] 🐛 Bug-Fix (nicht brechende Änderung, behebt ein Problem)
+- [ ] ✨ Neue Funktion (nicht brechende Änderung, fügt Funktionalität hinzu)
+- [ ] 💥 Brechende Änderung (fix oder feature, das bestehende Funktionalität ändert)
+- [ ] 📚 Dokumentation
+- [ ] 🎨 UI/UX Verbesserung
+- [ ] ⚡ Performance-Verbesserung
+- [ ] 🔒 Sicherheits-Fix
+- [ ] 🧪 Tests
 
 ## Checkliste
 
-- [ ] Code folgt den Coding-Guidelines des Projekts
-- [ ] Selbst-Review durchgefuehrt
-- [ ] Dokumentation aktualisiert
-- [ ] Prisma Schema aktualisiert (falls DB-Aenderungen)
-- [ ] Environment-Variablen dokumentiert (falls neue)
+- [ ] Mein Code folgt dem Code-Style dieses Projekts
+- [ ] Ich habe eine Self-Review meines Codes durchgeführt
+- [ ] Ich habe meinen Code kommentiert, besonders in schwer verständlichen Bereichen
+- [ ] Ich habe entsprechende Änderungen an der Dokumentation vorgenommen
+- [ ] Meine Änderungen generieren keine neuen Warnungen
+- [ ] Ich habe Tests für meine Änderungen hinzugefügt
+- [ ] Alle neuen und bestehenden Tests sind erfolgreich
+
+## Screenshots (wenn relevant)
+
+<!-- Füge Screenshots für UI-Änderungen hinzu -->
+
+## Verwandte Issues
+
+<!-- Closes #123, Fixes #456 -->
+
+## Weitere Hinweise
+
+<!-- Weitere Informationen für den Reviewer -->
