@@ -1,0 +1,8 @@
+name: "aitema|Termin CodeQL Config"
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+paths-ignore:
+  - node_modules
+  - build
+  - .svelte-kit
