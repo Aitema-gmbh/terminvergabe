@@ -36,9 +36,9 @@ export type Config = z.infer<typeof envSchema>;
 let _config: Config | null = null;
 
 export function getConfig(): Config {
-  if (\!_config) {
+  if (!_config) {
     const result = envSchema.safeParse(process.env);
-    if (\!result.success) {
+    if (!result.success) {
       console.error("Invalid environment variables:", result.error.flatten().fieldErrors);
       process.exit(1);
     }

@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --prefer-offline
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build
 
@@ -19,7 +19,7 @@ RUN addgroup --system --gid 1001 sveltekit && \
 
 COPY --from=builder --chown=sveltekit:sveltekit /app/build ./build
 COPY --from=builder /app/package.json ./
-RUN npm ci --omit=dev --prefer-offline
+RUN npm install --omit=dev --legacy-peer-deps
 
 USER sveltekit
 EXPOSE 3000

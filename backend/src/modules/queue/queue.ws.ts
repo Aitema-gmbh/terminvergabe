@@ -27,7 +27,7 @@ export function registerQueueWebSocket(app: FastifyInstance) {
     const queueChannel = `queue:${locationId}`;
     const displayChannel = `display:${locationId}`;
 
-    if (\!subscribedChannels.has(queueChannel)) {
+    if (!subscribedChannels.has(queueChannel)) {
       redisSub.subscribe(queueChannel, displayChannel);
       subscribedChannels.add(queueChannel);
       subscribedChannels.add(displayChannel);
@@ -39,8 +39,8 @@ export function registerQueueWebSocket(app: FastifyInstance) {
     const [type, locationId] = channel.split(":");
 
     for (const client of clients) {
-      if (client.locationId \!== locationId) continue;
-      if (client.ws.readyState \!== 1) continue; // WebSocket.OPEN = 1
+      if (client.locationId !== locationId) continue;
+      if (client.ws.readyState !== 1) continue; // WebSocket.OPEN = 1
 
       try {
         const parsed = JSON.parse(message);
@@ -66,7 +66,7 @@ export function registerQueueWebSocket(app: FastifyInstance) {
     const locationId = query.locationId;
     const clientType = (query.type === "display" ? "display" : "queue") as "queue" | "display";
 
-    if (\!locationId) {
+    if (!locationId) {
       socket.send(JSON.stringify({ error: "locationId parameter required" }));
       socket.close(1008, "Missing locationId");
       return;

@@ -1,0 +1,142 @@
+version: "3.9"
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "5"
+
+services:
+  postgres:
+    <<: *common
+    image: postgres:16-alpine
+    container_name: termin-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - termin_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - termin-backend
+
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    container_name: termin-redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - termin_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - termin-backend
+
+  backend:
+    <<: *common
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: aitema-termin-backend:latest
+    container_name: termin-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.termin-api.rule=Host(`termin.aitema.de`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.termin-api.entrypoints=websecure"
+      - "traefik.http.routers.termin-api.tls=true"
+      - "traefik.http.routers.termin-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.termin-api.loadbalancer.server.port=3000"
+    networks:
+      - termin-backend
+      - termin-frontend
+      - traefik-network
+    volumes:
+      - termin_logs:/app/logs
+
+  frontend-buerger:
+    <<: *common
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    image: aitema-termin-buerger:latest
+    container_name: termin-buerger
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/buchen || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      ORIGIN: ${BUERGER_ORIGIN}
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.termin.rule=Host(`termin.aitema.de`)"
+      - "traefik.http.routers.termin.entrypoints=websecure"
+      - "traefik.http.routers.termin.tls=true"
+      - "traefik.http.routers.termin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.termin.middlewares=termin-root-redirect@file"
+      - "traefik.http.services.termin.loadbalancer.server.port=3000"
+    networks:
+      - termin-frontend
+      - traefik-network
+
+volumes:
+  termin_postgres_data:
+    name: termin-postgres-data
+  termin_redis_data:
+    name: termin-redis-data
+  termin_logs:
+    name: termin-logs
+
+networks:
+  termin-backend:
+    name: termin-backend
+    driver: bridge
+    internal: true
+  termin-frontend:
+    name: termin-frontend
+    driver: bridge
+  traefik-network:
+    external: true

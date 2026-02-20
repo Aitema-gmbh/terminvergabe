@@ -19,7 +19,7 @@ declare module "fastify" {
 let jwks: jose.JWTVerifyGetKey | null = null;
 
 function getJwks(): jose.JWTVerifyGetKey {
-  if (\!jwks) {
+  if (!jwks) {
     const config = getConfig();
     const issuer = `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}`;
     jwks = jose.createRemoteJWKSet(
@@ -39,7 +39,7 @@ export async function requireAuth(
 ): Promise<void> {
   const authHeader = request.headers.authorization;
 
-  if (\!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith("Bearer ")) {
     reply.code(401).send({ error: "Missing or invalid Authorization header" });
     return;
   }
@@ -84,7 +84,7 @@ export function requireRole(...roles: string[]) {
     const userRoles = request.user?.roles ?? [];
     const hasRole = roles.some((r) => userRoles.includes(r));
 
-    if (\!hasRole) {
+    if (!hasRole) {
       reply.code(403).send({ error: "Insufficient permissions" });
     }
   };

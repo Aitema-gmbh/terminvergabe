@@ -40,7 +40,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       // Verify CSRF state
       const storedState = request.cookies.auth_state;
-      if (\!storedState || storedState \!== state) {
+      if (!storedState || storedState !== state) {
         reply.code(403).send({ error: "Invalid state parameter" });
         return;
       }
@@ -82,7 +82,7 @@ export async function authRoutes(app: FastifyInstance) {
     schema: { tags: ["auth"], summary: "Token erneuern" },
     handler: async (request, reply) => {
       const refreshTokenValue = request.cookies.refresh_token;
-      if (\!refreshTokenValue) {
+      if (!refreshTokenValue) {
         reply.code(401).send({ error: "No refresh token" });
         return;
       }

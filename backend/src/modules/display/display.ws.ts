@@ -25,18 +25,18 @@ const subscribedChannels = new Set<string>();
 export function registerDisplayWebSocket(app: FastifyInstance) {
   function ensureSubscribed(locationId: string) {
     const channel = `display:${locationId}`;
-    if (\!subscribedChannels.has(channel)) {
+    if (!subscribedChannels.has(channel)) {
       redisSub.subscribe(channel);
       subscribedChannels.add(channel);
     }
   }
 
   redisSub.on("message", async (channel: string, message: string) => {
-    if (\!channel.startsWith("display:")) return;
+    if (!channel.startsWith("display:")) return;
     const locationId = channel.split(":")[1];
 
     for (const client of displayClients) {
-      if (client.locationId \!== locationId || client.ws.readyState \!== 1) continue;
+      if (client.locationId !== locationId || client.ws.readyState !== 1) continue;
 
       try {
         // For TICKET_CALLED events, also send the full board update
@@ -60,7 +60,7 @@ export function registerDisplayWebSocket(app: FastifyInstance) {
     const locationId = query.locationId;
     const deviceId = query.deviceId;
 
-    if (\!locationId) {
+    if (!locationId) {
       socket.send(JSON.stringify({ error: "locationId required" }));
       socket.close(1008, "Missing locationId");
       return;

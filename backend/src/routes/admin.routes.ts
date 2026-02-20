@@ -130,14 +130,14 @@ export async function adminRoutes(app: FastifyInstance) {
         website?: string;
       };
 
-      if (\!body.name || \!body.slug) {
+      if (!body.name || !body.slug) {
         return reply.code(400).send({
           error: "name und slug sind erforderlich",
         });
       }
 
       // Slug validieren
-      if (\!/^[a-z0-9-]+$/.test(body.slug)) {
+      if (!/^[a-z0-9-]+$/.test(body.slug)) {
         return reply.code(400).send({
           error:
             "slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten",

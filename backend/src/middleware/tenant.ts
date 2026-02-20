@@ -35,7 +35,7 @@ export async function tenantMiddleware(
   const params = request.params as Record<string, string>;
   const tenantSlug = params.tenantSlug;
 
-  if (\!tenantSlug) {
+  if (!tenantSlug) {
     return;
   }
 
@@ -56,7 +56,7 @@ export async function tenantMiddleware(
     select: { id: true, slug: true },
   });
 
-  if (\!tenant) {
+  if (!tenant) {
     throw { statusCode: 404, message: `Tenant "${tenantSlug}" not found` };
   }
 
