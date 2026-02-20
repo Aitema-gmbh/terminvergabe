@@ -1,26 +1,3 @@
-# CODEOWNERS - Automatische Review-Zuweisung
-
-# Global fallback
-* @Aitema-gmbh/dev-team
-
-# Backend (Node/Prisma)
-/backend/ @Aitema-gmbh/backend-team
-/backend/prisma/ @Aitema-gmbh/backend-team @Aitema-gmbh/devops
-
-# Frontend
-/frontend-buerger/ @Aitema-gmbh/frontend-team
-/frontend-mitarbeiter/ @Aitema-gmbh/frontend-team
-/frontend-admin/ @Aitema-gmbh/frontend-team
-
-# Infrastructure
-/docker-compose*.yml @Aitema-gmbh/devops
-/docker/ @Aitema-gmbh/devops
-/.github/ @Aitema-gmbh/devops
-/scripts/ @Aitema-gmbh/devops
-
-# Hardware-Integration
-/hardware/ @Aitema-gmbh/backend-team
-
-# Docs
-/docs/ @Aitema-gmbh/dev-team
-*.md @Aitema-gmbh/dev-team
+# aitema|Termin CODEOWNERS
+# Alle Dateien: termin-maintainers
+* @Aitema-gmbh
