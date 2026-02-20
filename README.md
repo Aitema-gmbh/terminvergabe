@@ -1,5 +1,13 @@
 # aitema|Termin – Open-Source-Terminvergabesystem
 
+![GitHub License](https://img.shields.io/github/license/Aitema-gmbh/terminvergabe?style=flat-square&color=blue)
+![GitHub Stars](https://img.shields.io/github/stars/Aitema-gmbh/terminvergabe?style=flat-square)
+![publiccode.yml](https://img.shields.io/badge/publiccode-0.4-brightgreen?style=flat-square)
+![OZG](https://img.shields.io/badge/OZG-konform-green?style=flat-square)
+![SvelteKit](https://img.shields.io/badge/SvelteKit-2-FF3E00?style=flat-square&logo=svelte&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)
+
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![OZG konform](https://img.shields.io/badge/OZG-konform-green)](https://www.onlinezugangsgesetz.de)
 [![Made in Germany](https://img.shields.io/badge/Made_in-Germany-black)](https://aitema.de)
