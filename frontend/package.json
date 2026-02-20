@@ -7,7 +7,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,svelte,js,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,svelte,js,json,css,md}\""
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^2.0.0",
