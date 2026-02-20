@@ -1,0 +1,333 @@
+openapi: "3.1.0"
+info:
+  title: aitema|Termin API
+  description: |
+    REST-API des aitema Terminverwaltungssystems für Kommunalverwaltungen.
+    Ermöglicht Online-Buchung, Warteschlangenmanagement und Kiosk-Steuerung.
+  version: "1.0.0"
+  contact:
+    name: aitema GmbH
+    email: kontakt@aitema.de
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+servers:
+  - url: https://termin.ihre-kommune.de/api
+    description: Produktionsinstanz
+
+tags:
+  - name: Buchung
+    description: Online-Terminbuchung
+  - name: Warteschlange
+    description: Echtzeit-Warteschlangenmanagement
+  - name: Kiosk
+    description: Kiosk-Display und Selbstanmeldung
+  - name: Personal
+    description: Mitarbeiter-Funktionen
+  - name: Verwaltung
+    description: Administration (erfordert Auth)
+
+paths:
+  /standorte:
+    get:
+      tags: [Buchung]
+      summary: Verfügbare Standorte
+      responses:
+        '200':
+          description: Liste der Standorte
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Standort'
+
+  /standorte/{id}/dienstleistungen:
+    get:
+      tags: [Buchung]
+      summary: Angebotene Dienstleistungen
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dienstleistungsliste
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dienstleistung'
+
+  /verfuegbarkeit:
+    get:
+      tags: [Buchung]
+      summary: Freie Termine abfragen
+      parameters:
+        - name: standort_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: dienstleistung_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: datum_von
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: datum_bis
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Verfügbare Zeitfenster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zeitfenster'
+
+  /buchungen:
+    post:
+      tags: [Buchung]
+      summary: Termin buchen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuchungAnfrage'
+      responses:
+        '201':
+          description: Buchung erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuchungBestaetigung'
+        '409':
+          description: Termin nicht mehr verfügbar
+
+  /buchungen/{code}:
+    get:
+      tags: [Buchung]
+      summary: Buchung abrufen (via QR-Code)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Buchungsdetails
+
+  /warteschlange/{standort_id}:
+    get:
+      tags: [Warteschlange]
+      summary: Aktuelle Warteschlange (Echtzeit)
+      parameters:
+        - name: standort_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Warteschlangenstatus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warteschlange'
+
+  /kiosk/{standort_id}/anmelden:
+    post:
+      tags: [Kiosk]
+      summary: Anmeldung am Kiosk (via QR-Code oder Daten)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - properties:
+                    buchungs_code:
+                      type: string
+                - properties:
+                    vorname:
+                      type: string
+                    nachname:
+                      type: string
+                    dienstleistung_id:
+                      type: string
+                      format: uuid
+      responses:
+        '200':
+          description: Ticket-Nummer zugewiesen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskTicket'
+
+  /personal/naechster:
+    post:
+      tags: [Personal]
+      summary: Nächsten Kunden aufrufen
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                schalter_nr:
+                  type: integer
+      responses:
+        '200':
+          description: Nächster Kunde
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AktuellerKunde'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Standort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Bürgeramt Hauptstraße"
+        adresse:
+          type: string
+        oeffnungszeiten:
+          type: string
+
+    Dienstleistung:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Personalausweis beantragen"
+        dauer_minuten:
+          type: integer
+          example: 20
+        benoetigt_termin:
+          type: boolean
+
+    Zeitfenster:
+      type: object
+      properties:
+        beginn:
+          type: string
+          format: date-time
+        ende:
+          type: string
+          format: date-time
+        verfuegbar:
+          type: boolean
+
+    BuchungAnfrage:
+      type: object
+      required: [zeitfenster_beginn, dienstleistung_id, vorname, nachname, email]
+      properties:
+        zeitfenster_beginn:
+          type: string
+          format: date-time
+        dienstleistung_id:
+          type: string
+          format: uuid
+        standort_id:
+          type: string
+          format: uuid
+        vorname:
+          type: string
+        nachname:
+          type: string
+        email:
+          type: string
+          format: email
+        telefon:
+          type: string
+
+    BuchungBestaetigung:
+      type: object
+      properties:
+        buchungs_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: "T-2025-001234"
+        qr_code_url:
+          type: string
+          format: uri
+        termin:
+          type: string
+          format: date-time
+        standort:
+          type: string
+
+    Warteschlange:
+      type: object
+      properties:
+        aktuelle_nummer:
+          type: string
+        wartezeit_minuten:
+          type: integer
+        personen_wartend:
+          type: integer
+        naechste_termine:
+          type: array
+          items:
+            type: object
+
+    KioskTicket:
+      type: object
+      properties:
+        ticket_nummer:
+          type: string
+          example: "A-042"
+        wartezeit_geschaetzt:
+          type: integer
+          description: Geschätzte Wartezeit in Minuten
+        personen_davor:
+          type: integer
+
+    AktuellerKunde:
+      type: object
+      properties:
+        ticket_nummer:
+          type: string
+        name:
+          type: string
+        dienstleistung:
+          type: string
+        schalter:
+          type: integer
