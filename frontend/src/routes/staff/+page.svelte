@@ -8,17 +8,16 @@
   let intervalId: any;
   let selectedDate = new Date().toISOString().split('T')[0];
   let counterId = '';
+  let lastUpdated = '';
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   async function loadData() {
     try {
-      // Load today's appointments
       const apptResp = await fetch(`${API}/api/v1/staff/appointments?date=${selectedDate}`);
       const apptData = await apptResp.json();
       appointments = apptData.appointments || [];
 
-      // Calculate stats
       stats = {
         today: appointments.length,
         checkedIn: appointments.filter((a: any) => a.status === 'CHECKED_IN').length,
@@ -27,6 +26,7 @@
         noShow: appointments.filter((a: any) => a.status === 'NO_SHOW').length,
       };
 
+      lastUpdated = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       loading = false;
     } catch (e) {
       console.error('Failed to load data:', e);
@@ -82,20 +82,24 @@
     CANCELLED: 'Storniert',
   };
 
-  const statusColors: Record<string, string> = {
-    BOOKED: '#3b82f6',
-    CONFIRMED: '#8b5cf6',
-    CHECKED_IN: '#f59e0b',
-    CALLED: '#f97316',
-    IN_PROGRESS: '#06b6d4',
-    COMPLETED: '#16a34a',
-    NO_SHOW: '#dc2626',
-    CANCELLED: '#6b7280',
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    BOOKED:      { bg: '#eff6ff', text: '#1d4ed8' },
+    CONFIRMED:   { bg: '#f5f3ff', text: '#6d28d9' },
+    CHECKED_IN:  { bg: '#fffbeb', text: '#92400e' },
+    CALLED:      { bg: '#fff7ed', text: '#c2410c' },
+    IN_PROGRESS: { bg: '#ecfeff', text: '#0e7490' },
+    COMPLETED:   { bg: '#f0fdf4', text: '#166534' },
+    NO_SHOW:     { bg: '#fef2f2', text: '#991b1b' },
+    CANCELLED:   { bg: '#f9fafb', text: '#6b7280' },
   };
+
+  $: completionRate = appointments.length > 0
+    ? Math.round((stats.completed / appointments.length) * 100)
+    : 0;
 
   onMount(() => {
     loadData();
-    intervalId = setInterval(loadData, 15000); // Refresh every 15s
+    intervalId = setInterval(loadData, 15000);
   });
 
   onDestroy(() => {
@@ -107,53 +111,141 @@
   <title>Mitarbeiter-Dashboard - aitema|Termin</title>
 </svelte:head>
 
-<div class="staff-dashboard">
-  <header class="dashboard-header">
-    <h1>Mitarbeiter-Dashboard</h1>
-    <div class="header-controls">
-      <input type="date" bind:value={selectedDate} on:change={loadData}
-             class="form-control" style="width: 180px;">
-      <button class="btn btn-primary btn-lg" on:click={callNext}>
+<div class="dashboard">
+  <!-- Dashboard Header -->
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <div class="dash-title-row">
+        <div class="dash-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+            <rect x="1" y="1" width="20" height="20" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+            <rect x="5" y="5" width="5" height="5" rx="1" fill="#3b82f6"/>
+            <rect x="12" y="5" width="5" height="5" rx="1" fill="#3b82f6" opacity="0.4"/>
+            <rect x="5" y="12" width="5" height="5" rx="1" fill="#3b82f6" opacity="0.4"/>
+            <rect x="12" y="12" width="5" height="5" rx="1" fill="#3b82f6" opacity="0.6"/>
+          </svg>
+        </div>
+        <h1 class="dash-title">Mitarbeiter-Dashboard</h1>
+      </div>
+      {#if lastUpdated}
+        <p class="last-updated">
+          <span class="live-dot" aria-hidden="true"></span>
+          Live &bull; Zuletzt aktualisiert: {lastUpdated}
+        </p>
+      {/if}
+    </div>
+    <div class="dash-header-right">
+      <div class="date-control">
+        <label for="date-select" class="date-label">Datum</label>
+        <input type="date" id="date-select" bind:value={selectedDate} on:change={loadData}
+               class="date-input">
+      </div>
+      <button class="call-next-btn" on:click={callNext}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <circle cx="9" cy="9" r="8" stroke="white" stroke-width="1.5"/>
+          <path d="M6 9h6M9 6l3 3-3 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         Naechsten aufrufen
       </button>
     </div>
-  </header>
+  </div>
 
-  <!-- Stats -->
+  <!-- Stats Grid -->
   <div class="stats-grid" aria-label="Tagesstatistiken">
     <div class="stat-card">
-      <div class="stat-value">{stats.today}</div>
-      <div class="stat-label">Termine heute</div>
+      <div class="stat-icon stat-icon-blue">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="2" y="3" width="16" height="14" rx="2" stroke="#3b82f6" stroke-width="1.5"/>
+          <path d="M6 1v4M14 1v4M2 9h16" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value">{stats.today}</p>
+        <p class="stat-label">Termine heute</p>
+      </div>
     </div>
-    <div class="stat-card stat-card--warning">
-      <div class="stat-value">{stats.checkedIn}</div>
-      <div class="stat-label">Eingecheckt</div>
+
+    <div class="stat-card stat-card-amber">
+      <div class="stat-icon stat-icon-amber">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M10 2l1.88 5.79H18l-4.94 3.59L14.94 17.5 10 13.91 5.06 17.5l1.88-5.12L2 8.79h6.12z" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value">{stats.checkedIn}</p>
+        <p class="stat-label">Eingecheckt</p>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">{stats.waiting}</div>
-      <div class="stat-label">Wartend</div>
+
+    <div class="stat-card stat-card-slate">
+      <div class="stat-icon stat-icon-slate">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7.5" stroke="#64748b" stroke-width="1.5"/>
+          <path d="M10 6v4l3 2" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value">{stats.waiting}</p>
+        <p class="stat-label">Wartend</p>
+      </div>
     </div>
-    <div class="stat-card stat-card--success">
-      <div class="stat-value">{stats.completed}</div>
-      <div class="stat-label">Abgeschlossen</div>
+
+    <div class="stat-card stat-card-emerald">
+      <div class="stat-icon stat-icon-emerald">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7.5" stroke="#059669" stroke-width="1.5"/>
+          <path d="M6 10l3 3 5-5" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value">{stats.completed}</p>
+        <p class="stat-label">Abgeschlossen</p>
+      </div>
     </div>
-    <div class="stat-card stat-card--danger">
-      <div class="stat-value">{stats.noShow}</div>
-      <div class="stat-label">Nicht erschienen</div>
+
+    <div class="stat-card stat-card-red">
+      <div class="stat-icon stat-icon-red">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7.5" stroke="#dc2626" stroke-width="1.5"/>
+          <path d="M7 7l6 6M13 7l-6 6" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value">{stats.noShow}</p>
+        <p class="stat-label">Nicht erschienen</p>
+      </div>
     </div>
   </div>
 
-  <!-- Appointments Table -->
-  <section aria-label="Termine">
-    <h2>Termine am {new Date(selectedDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-    
+  <!-- Appointments Section -->
+  <div class="appointments-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        Termine am {new Date(selectedDate).toLocaleDateString('de-DE', {
+          weekday: 'long', day: 'numeric', month: 'long'
+        })}
+      </h2>
+      <span class="appointment-count">{appointments.length} Eintraege</span>
+    </div>
+
     {#if loading}
-      <p role="status" class="loading">Laden...</p>
+      <div class="loading-state" role="status">
+        <div class="spinner"></div>
+        <p>Daten werden geladen...</p>
+      </div>
     {:else if appointments.length === 0}
-      <p class="empty">Keine Termine fuer diesen Tag.</p>
+      <div class="empty-state">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+          <circle cx="28" cy="28" r="28" fill="#f1f5f9"/>
+          <rect x="14" y="16" width="28" height="26" rx="4" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
+          <path d="M20 12v8M36 12v8M14 28h28" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p class="empty-title">Keine Termine</p>
+        <p class="empty-sub">Fuer diesen Tag sind keine Termine vorhanden.</p>
+      </div>
     {:else}
-      <div class="table-wrapper">
-        <table class="data-table" aria-label="Terminliste">
+      <div class="table-container">
+        <table class="appointments-table" aria-label="Terminliste">
           <thead>
             <tr>
               <th scope="col">Zeit</th>
@@ -166,41 +258,51 @@
           </thead>
           <tbody>
             {#each appointments as apt}
-              <tr class:row-checkedin={apt.status === 'CHECKED_IN'}
-                  class:row-called={apt.status === 'CALLED'}>
-                <td>
-                  <time>{formatTime(apt.startTime)} - {formatTime(apt.endTime)}</time>
+              <tr class="apt-row"
+                  class:apt-row-checkedin={apt.status === 'CHECKED_IN'}
+                  class:apt-row-called={apt.status === 'CALLED'}
+                  class:apt-row-inprogress={apt.status === 'IN_PROGRESS'}>
+                <td class="time-cell">
+                  <time class="time-main">{formatTime(apt.startTime)}</time>
+                  <span class="time-end">bis {formatTime(apt.endTime)}</span>
                 </td>
-                <td><code>{apt.bookingRef}</code></td>
-                <td>{apt.citizenName}</td>
-                <td>{apt.service?.name || '-'}</td>
                 <td>
-                  <span class="status-badge"
-                        style="background: {statusColors[apt.status] || '#6b7280'}">
+                  <code class="booking-code">{apt.bookingRef}</code>
+                </td>
+                <td class="name-cell">{apt.citizenName}</td>
+                <td class="service-cell">{apt.service?.name || '-'}</td>
+                <td>
+                  <span class="status-pill"
+                        style="background: {statusColors[apt.status]?.bg || '#f9fafb'}; color: {statusColors[apt.status]?.text || '#6b7280'}">
                     {statusLabels[apt.status] || apt.status}
                   </span>
                 </td>
-                <td class="action-cell">
+                <td class="actions-cell">
                   {#if apt.status === 'BOOKED' || apt.status === 'CONFIRMED'}
-                    <button class="btn btn-sm" on:click={() => updateStatus(apt.id, 'CHECKED_IN')}>
+                    <button class="action-btn action-btn-blue"
+                            on:click={() => updateStatus(apt.id, 'CHECKED_IN')}>
                       Einchecken
                     </button>
-                    <button class="btn btn-sm btn-danger" on:click={() => updateStatus(apt.id, 'NO_SHOW')}>
+                    <button class="action-btn action-btn-red"
+                            on:click={() => updateStatus(apt.id, 'NO_SHOW')}>
                       N.E.
                     </button>
                   {/if}
                   {#if apt.status === 'CHECKED_IN'}
-                    <button class="btn btn-sm btn-primary" on:click={() => updateStatus(apt.id, 'CALLED')}>
+                    <button class="action-btn action-btn-blue"
+                            on:click={() => updateStatus(apt.id, 'CALLED')}>
                       Aufrufen
                     </button>
                   {/if}
                   {#if apt.status === 'CALLED'}
-                    <button class="btn btn-sm btn-success" on:click={() => updateStatus(apt.id, 'IN_PROGRESS')}>
-                      Start
+                    <button class="action-btn action-btn-emerald"
+                            on:click={() => updateStatus(apt.id, 'IN_PROGRESS')}>
+                      Starten
                     </button>
                   {/if}
                   {#if apt.status === 'IN_PROGRESS'}
-                    <button class="btn btn-sm btn-success" on:click={() => updateStatus(apt.id, 'COMPLETED')}>
+                    <button class="action-btn action-btn-emerald"
+                            on:click={() => updateStatus(apt.id, 'COMPLETED')}>
                       Fertig
                     </button>
                   {/if}
@@ -211,58 +313,197 @@
         </table>
       </div>
     {/if}
-  </section>
+  </div>
 </div>
 
 <style>
-  .staff-dashboard { padding: 1.5rem; }
-  .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-  .dashboard-header h1 { font-size: 1.5rem; margin: 0; }
-  .header-controls { display: flex; gap: 0.75rem; align-items: center; }
+  .dashboard {
+    padding: 1.5rem;
+    min-height: 100vh;
+    background: #f8fafc;
+  }
 
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
-  .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; text-align: center; }
-  .stat-card--warning { border-left: 4px solid #f59e0b; }
-  .stat-card--success { border-left: 4px solid #16a34a; }
-  .stat-card--danger { border-left: 4px solid #dc2626; }
-  .stat-value { font-size: 2rem; font-weight: 700; }
-  .stat-label { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+  /* Header */
+  .dash-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .dash-header-left { display: flex; flex-direction: column; gap: 0.375rem; }
+  .dash-title-row { display: flex; align-items: center; gap: 0.75rem; }
+  .dash-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dash-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin: 0; }
+  .last-updated { font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 0.375rem; margin: 0; }
+  .live-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #059669;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 
-  h2 { font-size: 1.125rem; margin-bottom: 1rem; }
-  .table-wrapper { overflow-x: auto; }
-  .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  .data-table th { background: #f9fafb; padding: 0.75rem 1rem; text-align: left; font-size: 0.875rem; color: #374151; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
-  .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
-  .data-table tr:hover { background: #f9fafb; }
-  
-  .row-checkedin { background: #fffbeb !important; }
-  .row-called { background: #fff7ed !important; border-left: 3px solid #f97316; }
+  .dash-header-right { display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: wrap; }
+  .date-control { display: flex; flex-direction: column; gap: 0.25rem; }
+  .date-label { font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+  .date-input {
+    padding: 0.5rem 0.75rem; border: 1.5px solid #e2e8f0;
+    border-radius: 0.5rem; font-size: 0.875rem; min-height: 40px;
+    background: #fff; cursor: pointer; color: #0f172a;
+  }
+  .date-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
-  .status-badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; color: #fff; font-size: 0.75rem; font-weight: 600; }
-  
-  .action-cell { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-  
-  code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.75rem; }
+  .call-next-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    color: #fff; border: none; border-radius: 0.625rem;
+    font-size: 0.9375rem; font-weight: 700; cursor: pointer;
+    min-height: 44px; box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    transition: all 0.15s;
+  }
+  .call-next-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.4); }
+  .call-next-btn:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
 
-  .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; cursor: pointer; border: 1px solid #d1d5db; background: #fff; min-height: 44px; font-weight: 600; }
-  .btn:hover { background: #f3f4f6; }
-  .btn:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
-  .btn-primary { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
-  .btn-primary:hover { background: #2d5a8e; }
-  .btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
-  .btn-danger { background: #dc2626; color: #fff; border-color: #dc2626; }
-  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; min-height: 32px; }
-  .btn-lg { padding: 0.75rem 1.5rem; font-size: 1rem; }
-  
-  .form-control { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; min-height: 44px; }
-  
-  .loading { color: #6b7280; text-align: center; padding: 2rem; }
-  .empty { color: #9ca3af; text-align: center; padding: 2rem; }
-  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+  /* Stats */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.875rem; margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem;
+    padding: 1.125rem 1.25rem; display: flex; align-items: center; gap: 0.875rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.15s;
+  }
+  .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .stat-card-amber { border-left: 3px solid #f59e0b; }
+  .stat-card-slate { border-left: 3px solid #64748b; }
+  .stat-card-emerald { border-left: 3px solid #059669; }
+  .stat-card-red { border-left: 3px solid #dc2626; }
 
-  @media (max-width: 768px) {
-    .dashboard-header { flex-direction: column; align-items: flex-start; }
+  .stat-icon {
+    width: 40px; height: 40px; border-radius: 0.5rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stat-icon-blue { background: #eff6ff; }
+  .stat-icon-amber { background: #fffbeb; }
+  .stat-icon-slate { background: #f1f5f9; }
+  .stat-icon-emerald { background: #f0fdf4; }
+  .stat-icon-red { background: #fef2f2; }
+
+  .stat-info { min-width: 0; }
+  .stat-value { font-size: 1.75rem; font-weight: 800; color: #0f172a; line-height: 1; margin-bottom: 0.25rem; }
+  .stat-label { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+
+  /* Appointments Section */
+  .appointments-section {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 0.875rem; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+  }
+  .section-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; }
+  .appointment-count {
+    display: inline-flex; align-items: center;
+    padding: 0.25rem 0.75rem; background: #f1f5f9;
+    border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #64748b;
+  }
+
+  .table-container { overflow-x: auto; }
+  .appointments-table { width: 100%; border-collapse: collapse; }
+  .appointments-table th {
+    background: #f8fafc; padding: 0.75rem 1rem;
+    text-align: left; font-size: 0.75rem; font-weight: 700;
+    color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .appointments-table td {
+    padding: 0.875rem 1rem; border-bottom: 1px solid #f8fafc;
+    font-size: 0.875rem; color: #0f172a; vertical-align: middle;
+  }
+  .appointments-table tr:last-child td { border-bottom: none; }
+  .appointments-table tr:hover td { background: #f8fafc; }
+
+  .apt-row-checkedin td { background: #fffbeb !important; }
+  .apt-row-called td { background: #fff7ed !important; }
+  .apt-row-inprogress td { background: #f0fdf4 !important; }
+
+  .time-cell { white-space: nowrap; }
+  .time-main { display: block; font-weight: 700; font-size: 0.9375rem; }
+  .time-end { display: block; font-size: 0.75rem; color: #94a3b8; }
+
+  .booking-code {
+    background: #f1f5f9; padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem; font-size: 0.75rem; font-family: monospace;
+    color: #1e3a5f; font-weight: 600;
+  }
+
+  .name-cell { font-weight: 600; }
+  .service-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #475569; }
+
+  .status-pill {
+    display: inline-flex; align-items: center;
+    padding: 0.25rem 0.625rem; border-radius: 9999px;
+    font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+  }
+
+  .actions-cell { display: flex; gap: 0.375rem; flex-wrap: wrap; align-items: center; }
+  .action-btn {
+    padding: 0.375rem 0.75rem; border-radius: 0.4rem;
+    font-size: 0.75rem; font-weight: 700; cursor: pointer;
+    border: none; min-height: 32px; transition: all 0.1s;
+    white-space: nowrap;
+  }
+  .action-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+  .action-btn-blue { background: #eff6ff; color: #1d4ed8; }
+  .action-btn-blue:hover { background: #dbeafe; }
+  .action-btn-emerald { background: #f0fdf4; color: #166534; }
+  .action-btn-emerald:hover { background: #dcfce7; }
+  .action-btn-red { background: #fef2f2; color: #991b1b; }
+  .action-btn-red:hover { background: #fee2e2; }
+
+  /* Loading & Empty */
+  .loading-state {
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    padding: 3rem; color: #64748b; font-size: 0.875rem;
+  }
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    padding: 3rem; text-align: center;
+  }
+  .empty-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0.5rem 0 0.25rem; }
+  .empty-sub { font-size: 0.875rem; color: #94a3b8; }
+
+  /* Spinner */
+  .spinner {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2.5px solid #e2e8f0; border-top-color: #3b82f6;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .dash-header { flex-direction: column; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .action-cell { flex-direction: column; }
+    .actions-cell { flex-direction: column; }
+    .service-cell { max-width: 120px; }
+  }
+  @media (max-width: 600px) {
+    .dashboard { padding: 1rem; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .call-next-btn span { display: none; }
   }
 </style>
