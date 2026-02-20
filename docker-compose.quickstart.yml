@@ -1,0 +1,70 @@
+# aitema|Termin – Schnellstart (Produktion)
+# Starten: docker compose up -d
+# Öffnen:  http://localhost:3002 (Bürgerbuchung)
+#          http://localhost:3003 (Mitarbeiter-Dashboard)
+# Tipp:    Kopiere .env.example nach .env und passe die Werte an!
+
+services:
+  backend:
+    image: ghcr.io/aitema-gmbh/terminvergabe-backend:latest
+    # Alternativ: build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://aitema:${DB_PASSWORD:-geheimes_passwort}@db:5432/termin
+      - SECRET_KEY=${SECRET_KEY:-bitte_aendern_in_produktion}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - termin_net
+
+  frontend-buerger:
+    image: ghcr.io/aitema-gmbh/terminvergabe-buerger:latest
+    # Alternativ: build: ./frontend-buerger
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - termin_net
+
+  frontend-mitarbeiter:
+    image: ghcr.io/aitema-gmbh/terminvergabe-mitarbeiter:latest
+    # Alternativ: build: ./frontend-mitarbeiter
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    environment:
+      - PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - termin_net
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=termin
+      - POSTGRES_USER=aitema
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-geheimes_passwort}
+    volumes:
+      - termin_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aitema -d termin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - termin_net
+
+volumes:
+  termin_db_data:
+
+networks:
+  termin_net:
