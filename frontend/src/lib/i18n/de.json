@@ -1,0 +1,50 @@
+{
+  "app": {
+    "title": "aitema Terminvergabe",
+    "subtitle": "Online-Terminbuchung für Ihre Gemeinde"
+  },
+  "booking": {
+    "title": "Termin buchen",
+    "step_location": "Standort wählen",
+    "step_service": "Dienstleistung wählen",
+    "step_date": "Termin wählen",
+    "step_data": "Ihre Daten",
+    "step_confirm": "Bestätigung",
+    "select_location": "Standort auswählen",
+    "select_service": "Dienstleistung auswählen",
+    "duration": "{min} Minuten",
+    "no_slots": "Keine Termine verfügbar",
+    "book_button": "Termin buchen",
+    "cancel": "Abbrechen",
+    "back": "Zurück",
+    "next": "Weiter"
+  },
+  "form": {
+    "first_name": "Vorname",
+    "last_name": "Nachname",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "notes": "Anmerkungen",
+    "required": "Pflichtfeld"
+  },
+  "confirmation": {
+    "title": "Termin bestätigt!",
+    "number": "Auftragsnummer",
+    "add_calendar": "Zum Kalender hinzufügen",
+    "reminder": "Sie erhalten eine Bestätigungs-E-Mail."
+  },
+  "status": {
+    "waiting": "Wartend",
+    "called": "Aufgerufen",
+    "processing": "In Bearbeitung",
+    "done": "Erledigt",
+    "cancelled": "Abgesagt"
+  },
+  "kiosk": {
+    "welcome": "Willkommen",
+    "take_number": "Ticket ziehen",
+    "your_number": "Ihre Nummer",
+    "now_serving": "Jetzt aufgerufen",
+    "waiting_count": "{n} Personen warten"
+  }
+}

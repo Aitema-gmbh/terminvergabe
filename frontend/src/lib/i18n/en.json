@@ -1,0 +1,50 @@
+{
+  "app": {
+    "title": "aitema Appointments",
+    "subtitle": "Online appointment booking for your municipality"
+  },
+  "booking": {
+    "title": "Book Appointment",
+    "step_location": "Choose Location",
+    "step_service": "Choose Service",
+    "step_date": "Choose Date & Time",
+    "step_data": "Your Details",
+    "step_confirm": "Confirmation",
+    "select_location": "Select location",
+    "select_service": "Select service",
+    "duration": "{min} minutes",
+    "no_slots": "No appointments available",
+    "book_button": "Book Appointment",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next"
+  },
+  "form": {
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "notes": "Notes",
+    "required": "Required"
+  },
+  "confirmation": {
+    "title": "Appointment Confirmed!",
+    "number": "Reference Number",
+    "add_calendar": "Add to Calendar",
+    "reminder": "You will receive a confirmation email."
+  },
+  "status": {
+    "waiting": "Waiting",
+    "called": "Called",
+    "processing": "Processing",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "kiosk": {
+    "welcome": "Welcome",
+    "take_number": "Take Ticket",
+    "your_number": "Your Number",
+    "now_serving": "Now Serving",
+    "waiting_count": "{n} people waiting"
+  }
+}
