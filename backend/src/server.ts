@@ -13,6 +13,7 @@ import { bookingRoutes } from "./modules/booking/booking.routes.js";
 import { queueRoutes } from "./modules/queue/queue.routes.js";
 import { displayRoutes } from "./modules/display/display.routes.js";
 import { adminRoutes } from "./modules/admin/admin.routes.js";
+import { calendarRoutes } from "./modules/admin/calendar.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { tenantMiddleware } from "./middleware/tenant.js";
 import { startNotificationWorker } from "./modules/notification/notification.worker.js";
@@ -122,6 +123,8 @@ async function buildApp() {
   await app.register(queueRoutes, { prefix: "/api/v1/:tenantSlug/queue" });
   await app.register(displayRoutes, { prefix: "/api/v1/:tenantSlug/display" });
   await app.register(adminRoutes, { prefix: "/api/v1/admin" });
+  // M3: CalDAV Staff-Kalender
+  await app.register(calendarRoutes, { prefix: "/api/v1/admin" });
 
   return app;
 }

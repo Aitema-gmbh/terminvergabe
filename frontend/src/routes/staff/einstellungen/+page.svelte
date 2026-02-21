@@ -4,7 +4,7 @@
   // ============================================================
   // State
   // ============================================================
-  let activeTab: 'hours' | 'services' | 'counters' | 'display' | 'notifications' | 'branding' = 'hours';
+  let activeTab: 'hours' | 'services' | 'counters' | 'display' | 'notifications' | 'branding' | 'calendar' = 'hours';
   let loading = true;
   let saving = false;
   let saveMessage = '';
@@ -172,6 +172,41 @@
     setTimeout(() => { saveMessage = ''; }, 3000);
   }
 
+  // M3: CalDAV Kalender-Feed State
+  let calendarFeedUrl = '';
+  let calendarToken = '';
+  let calendarCopied = false;
+  let calendarLoading = false;
+
+  async function generateCalendarFeed() {
+    calendarLoading = true;
+    try {
+      const res = await fetch(`${API}/api/v1/admin/staff/me/calendar/generate-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        alert('Fehler beim Generieren des Kalender-Feeds');
+        return;
+      }
+      const data = await res.json();
+      calendarFeedUrl = data.data.feedUrl;
+      calendarToken = data.data.token;
+    } catch (e) {
+      alert('Verbindungsfehler');
+    } finally {
+      calendarLoading = false;
+    }
+  }
+
+  function copyCalendarFeedUrl() {
+    if (!calendarFeedUrl) return;
+    navigator.clipboard.writeText(calendarFeedUrl).then(() => {
+      calendarCopied = true;
+      setTimeout(() => { calendarCopied = false; }, 2500);
+    });
+  }
+
   const tabs = [
     { id: 'hours', label: 'Oeffnungszeiten' },
     { id: 'services', label: 'Dienstleistungen' },
@@ -179,6 +214,7 @@
     { id: 'display', label: 'Display' },
     { id: 'notifications', label: 'Benachrichtigungen' },
     { id: 'branding', label: 'Branding' },
+    { id: 'calendar', label: 'Kalender-Feed' },
   ] as const;
 
   onMount(loadSettings);
@@ -450,6 +486,45 @@
       </button>
     </section>
     {/if}
+    {#if activeTab === 'calendar'}
+    <section id="panel-calendar" role="tabpanel" class="settings-panel">
+      <h2>Kalender-Synchronisation (CalDAV / iCal)</h2>
+      <p>Abonnieren Sie Ihre Termine in Outlook, Apple Calendar oder Google Calendar.</p>
+
+      {#if calendarFeedUrl}
+        <div class="calendar-feed-box">
+          <label class="form-label">Ihr persoenlicher Kalender-Feed-Link</label>
+          <div class="feed-url-group">
+            <input type="url" value={calendarFeedUrl} readonly
+                   class="form-control feed-url-input"
+                   aria-label="Kalender-Feed URL" />
+            <button class="btn btn-primary" on:click={copyCalendarFeedUrl}>
+              {calendarCopied ? 'Kopiert!' : 'Kopieren'}
+            </button>
+          </div>
+          <div class="feed-instructions">
+            <p><strong>Kalender-App abonnieren:</strong></p>
+            <ul>
+              <li><strong>Outlook:</strong> Datei - Kontoeinst. - Internet-Kalender - Neu</li>
+              <li><strong>Apple Calendar:</strong> Ablage - Neues Kalenderabonnement</li>
+              <li><strong>Google Calendar:</strong> Andere Kalender + - Per URL</li>
+            </ul>
+          </div>
+          <button class="btn btn-secondary" on:click={generateCalendarFeed}
+                  disabled={calendarLoading} style="margin-top: 0.75rem;">
+            {calendarLoading ? 'Generiere...' : 'Neuen Token generieren'}
+          </button>
+        </div>
+      {:else}
+        <div class="calendar-empty">
+          <p>Noch kein Kalender-Feed vorhanden.</p>
+          <button class="btn btn-primary" on:click={generateCalendarFeed} disabled={calendarLoading}>
+            {calendarLoading ? 'Generiere...' : 'Kalender-Feed generieren'}
+          </button>
+        </div>
+      {/if}
+    </section>
+    {/if}
 
   {/if}
 </div>
@@ -551,4 +626,15 @@
   @media (prefers-reduced-motion: reduce) {
     .toggle-switch, .toggle-switch::after { transition: none; }
   }
+  /* M3: CalDAV Calendar Feed Styles */
+  .settings-description { color: #6b7280; margin-bottom: 1.5rem; font-size: 0.9rem; }
+  .calendar-feed-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.5rem; }
+  .feed-url-group { display: flex; gap: 0.5rem; margin: 0.5rem 0 1rem; }
+  .feed-url-input { flex: 1; font-family: monospace; font-size: 0.8rem; background: #fff; }
+  .feed-instructions { margin: 1rem 0 0; font-size: 0.875rem; color: #374151; }
+  .feed-instructions ul { margin: 0.5rem 0 0 1.25rem; padding: 0; }
+  .feed-instructions li { margin-bottom: 0.375rem; }
+  .calendar-empty { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem; text-align: center; color: #6b7280; }
+  .calendar-empty svg { opacity: 0.7; }
+
 </style>
