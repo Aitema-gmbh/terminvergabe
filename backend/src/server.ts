@@ -16,6 +16,8 @@ import { adminRoutes } from "./modules/admin/admin.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { tenantMiddleware } from "./middleware/tenant.js";
 import { startNotificationWorker } from "./modules/notification/notification.worker.js";
+import { icalRoutes } from "./routes/ical.routes.js";
+import { startNotificationScheduler } from "./services/notification-scheduler.js";
 
 const config = getConfig();
 
@@ -122,6 +124,8 @@ async function buildApp() {
   await app.register(queueRoutes, { prefix: "/api/v1/:tenantSlug/queue" });
   await app.register(displayRoutes, { prefix: "/api/v1/:tenantSlug/display" });
   await app.register(adminRoutes, { prefix: "/api/v1/admin" });
+  // T1: iCal Export
+  await app.register(icalRoutes);
 
   return app;
 }
@@ -131,6 +135,11 @@ async function start() {
 
   // Start notification worker
   startNotificationWorker();
+
+  // T3: Start SMS/Push notification scheduler (BullMQ Cron-Jobs)
+  startNotificationScheduler().catch((err) => {
+    app.log.warn({ err }, 'Notification-Scheduler konnte nicht gestartet werden (Redis erforderlich)');
+  });
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {

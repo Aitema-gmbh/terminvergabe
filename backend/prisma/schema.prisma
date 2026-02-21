@@ -1,4 +1,4 @@
-// aitema|Termin - Prisma Schema
+// aitema|Termin - Prisma Schema (erweitert fuer Modul-System)
 // Terminvergabe fuer deutsche Kommunen
 
 generator client {
@@ -15,23 +15,29 @@ datasource db {
 // ============================================================
 model Tenant {
   id            String   @id @default(uuid())
-  name          String   // Kommune-Name
-  slug          String   @unique // URL-Slug
-  ags           String?  // Amtlicher Gemeindeschluessel
-  domain        String?  // Custom domain
+  name          String
+  slug          String   @unique
+  ags           String?
+  domain        String?
   active        Boolean  @default(true)
-  
+
   // Branding
   primaryColor  String   @default("#1e3a5f")
   logoUrl       String?
-  
+
   // Config
   timezone      String   @default("Europe/Berlin")
   locale        String   @default("de-DE")
-  
+
+  // Booking rules (Modul-System)
+  slotBufferMinutes         Int  @default(0)
+  minAdvanceBookingHours    Int  @default(1)
+  maxAdvanceBookingDays     Int  @default(90)
+  cancellationDeadlineHours Int  @default(24)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   // Relations
   locations     Location[]
   services      Service[]
@@ -39,7 +45,9 @@ model Tenant {
   appointments  Appointment[]
   queueEntries  QueueEntry[]
   settings      TenantSettings?
-  
+  citizens      Citizen[]
+  notifications Notification[]
+
   @@index([slug])
   @@index([ags])
 }
@@ -48,31 +56,53 @@ model TenantSettings {
   id                    String  @id @default(uuid())
   tenantId              String  @unique
   tenant                Tenant  @relation(fields: [tenantId], references: [id])
-  
-  // Booking rules
+
   maxAdvanceBookingDays Int     @default(90)
   minBookingLeadHours   Int     @default(1)
   cancelLeadHours       Int     @default(24)
   maxBookingsPerPerson  Int     @default(3)
   requireEmailVerify    Boolean @default(true)
-  
-  // Queue settings
+
   queueEnabled          Boolean @default(true)
   estimatedWaitDisplay  Boolean @default(true)
-  
-  // BundID
+
   bundIdEnabled         Boolean @default(false)
   bundIdClientId        String?
   bundIdRedirectUri     String?
-  
-  // Notifications
+
   reminderHoursBefore   Int     @default(24)
   smsEnabled            Boolean @default(false)
   emailEnabled          Boolean @default(true)
-  
-  // Display
+
   displayBoardEnabled   Boolean @default(true)
   callSystemEnabled     Boolean @default(false)
+}
+
+// ============================================================
+// Citizen (Buerger)
+// ============================================================
+model Citizen {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+
+  email             String?
+  phone             String?
+  firstName         String?
+  lastName          String?
+  preferredLanguage String   @default("de")
+
+  // DSGVO
+  smsOptIn          Boolean  @default(false)
+  emailOptIn        Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  appointments      Appointment[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 // ============================================================
@@ -82,29 +112,32 @@ model Location {
   id          String   @id @default(uuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  
-  name        String   // z.B. "Buergerbuero Mitte"
+
+  name        String
   address     String?
   room        String?
   postalCode  String?
+  zipCode     String?
   city        String?
   phone       String?
   email       String?
-  
+
   latitude    Float?
   longitude   Float?
-  
+
   active      Boolean  @default(true)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Relations
+
   counters    Counter[]
   services    LocationService[]
   appointments Appointment[]
   queueEntries QueueEntry[]
-  
+  resources   Resource[]
+  openingHours OpeningHours[]
+  closedDays  ClosedDay[]
+
   @@index([tenantId])
 }
 
@@ -112,32 +145,36 @@ model Service {
   id              String   @id @default(uuid())
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
-  
-  name            String   // z.B. "Personalausweis beantragen"
+
+  name            String
   description     String?
-  category        String?  // z.B. "Ausweisdokumente", "Meldewesen", "KFZ"
-  duration        Int      @default(15) // Dauer in Minuten
-  bufferTime      Int      @default(5)  // Puffer zwischen Terminen
-  
-  // Requirements
-  requiredDocs    String[] // Benoetigte Unterlagen
-  onlineFormUrl   String?  // Link zum Online-Formular
-  fee             Float?   // Gebuehr in EUR
-  
+  category        String?
+  duration        Int      @default(15)  // Legacy: Minuten
+  durationMinutes Int      @default(15)  // Modul-System
+  bufferTime      Int      @default(5)   // Legacy
+  bufferAfterMinutes Int   @default(5)   // Modul-System
+  maxParallelBookings Int  @default(1)
+
+  requiredDocs    String[]
+  requiresDocuments String[] // Modul-System alias
+  onlineFormUrl   String?
+  fee             Float?
+
   active          Boolean  @default(true)
   sortOrder       Int      @default(0)
-  
+
   color           String   @default("#3b82f6")
   icon            String?
-  
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
-  // Relations
+
   locations       LocationService[]
   appointments    Appointment[]
   queueEntries    QueueEntry[]
-  
+  timeSlots       TimeSlot[]
+  resourceServices ResourceService[]
+
   @@index([tenantId, category])
 }
 
@@ -147,10 +184,66 @@ model LocationService {
   location    Location @relation(fields: [locationId], references: [id])
   serviceId   String
   service     Service  @relation(fields: [serviceId], references: [id])
-  
+
   active      Boolean  @default(true)
-  
+
   @@unique([locationId, serviceId])
+}
+
+// ============================================================
+// Resources (Raeume/Schalter fuer Modul-System)
+// ============================================================
+model Resource {
+  id          String   @id @default(uuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+
+  name        String
+  active      Boolean  @default(true)
+
+  timeSlots   TimeSlot[]
+  resourceServices ResourceService[]
+
+  @@index([locationId])
+}
+
+model ResourceService {
+  id         String   @id @default(uuid())
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id])
+
+  @@unique([resourceId, serviceId])
+}
+
+// ============================================================
+// Time Slots (Modul-System)
+// ============================================================
+model TimeSlot {
+  id          String   @id @default(uuid())
+  resourceId  String
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  date        DateTime @db.Date
+  startTime   DateTime
+  endTime     DateTime
+
+  status      TimeSlotStatus @default(AVAILABLE)
+
+  appointments Appointment[]
+
+  @@index([resourceId, date])
+  @@index([serviceId, date])
+}
+
+enum TimeSlotStatus {
+  AVAILABLE
+  RESERVED
+  BOOKED
+  BLOCKED
 }
 
 // ============================================================
@@ -160,19 +253,18 @@ model Employee {
   id          String   @id @default(uuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  
+
   name        String
   email       String
   role        EmployeeRole @default(SACHBEARBEITER)
   active      Boolean  @default(true)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Relations
+
   counterAssignments CounterAssignment[]
   appointments       Appointment[]
-  
+
   @@unique([tenantId, email])
   @@index([tenantId])
 }
@@ -188,15 +280,14 @@ model Counter {
   id          String   @id @default(uuid())
   locationId  String
   location    Location @relation(fields: [locationId], references: [id])
-  
-  number      Int      // Schalternummer
-  name        String?  // z.B. "Schalter 3"
+
+  number      Int
+  name        String?
   active      Boolean  @default(true)
-  
-  // Relations
+
   assignments CounterAssignment[]
   queueEntries QueueEntry[]
-  
+
   @@unique([locationId, number])
 }
 
@@ -206,17 +297,17 @@ model CounterAssignment {
   counter     Counter  @relation(fields: [counterId], references: [id])
   employeeId  String
   employee    Employee @relation(fields: [employeeId], references: [id])
-  
+
   date        DateTime @db.Date
   startTime   DateTime
   endTime     DateTime
-  
+
   @@index([counterId, date])
   @@index([employeeId, date])
 }
 
 // ============================================================
-// Time Slots & Appointments
+// Appointments (Legacy + Modul-System Felder)
 // ============================================================
 model Appointment {
   id              String   @id @default(uuid())
@@ -228,41 +319,72 @@ model Appointment {
   service         Service  @relation(fields: [serviceId], references: [id])
   employeeId      String?
   employee        Employee? @relation(fields: [employeeId], references: [id])
-  
-  // Time
-  date            DateTime @db.Date
-  startTime       DateTime
-  endTime         DateTime
-  
+
+  // Citizen (Modul-System)
+  citizenId       String?
+  citizen         Citizen? @relation(fields: [citizenId], references: [id])
+
+  // Resource + TimeSlot (Modul-System)
+  resourceId      String?
+  timeSlotId      String?
+  timeSlot        TimeSlot? @relation(fields: [timeSlotId], references: [id])
+
+  // Time (Legacy)
+  date            DateTime? @db.Date
+  startTime       DateTime?
+  endTime         DateTime?
+
+  // Time (Modul-System)
+  scheduledStart  DateTime?
+  scheduledEnd    DateTime?
+
   // Citizen info
   citizenName     String
   citizenEmail    String?
   citizenPhone    String?
-  
+
   // Status
   status          AppointmentStatus @default(BOOKED)
-  
-  // Booking reference
-  bookingRef      String   @unique  // z.B. "TRM-2026-00042"
-  confirmationSent Boolean @default(false)
-  reminderSent    Boolean  @default(false)
-  
+
+  // Source
+  source          String   @default("ONLINE")
+  notes           String?
+
+  // Booking reference (Legacy + Modul-System)
+  bookingRef      String?  @unique
+  bookingCode     String?  @unique
+
+  confirmationSent  Boolean @default(false)
+  reminderSent      Boolean @default(false)
+  reminder24hSent   Boolean @default(false)
+  reminder1hSent    Boolean @default(false)
+
   // Check-in
   checkedInAt     DateTime?
   calledAt        DateTime?
   completedAt     DateTime?
-  
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  // T3: SMS Opt-In
+  smsOptIn        Boolean  @default(false)
+
+  // Queue (optional)
+  queueEntry      QueueEntry?
+
+  // T2: QR-Code fuer Check-in
+  qrCodeDataUrl   String?
+
   // BundID
   bundIdVerified  Boolean  @default(false)
-  
-  notes           String?
-  
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
-  @@index([tenantId, date])
-  @@index([locationId, date])
+
+  @@index([tenantId, scheduledStart])
+  @@index([locationId, scheduledStart])
   @@index([status])
+  @@index([bookingCode])
   @@index([bookingRef])
 }
 
@@ -290,26 +412,26 @@ model QueueEntry {
   service     Service  @relation(fields: [serviceId], references: [id])
   counterId   String?
   counter     Counter? @relation(fields: [counterId], references: [id])
-  
-  // Queue number
-  ticketNumber String  // z.B. "A042"
-  
-  // Citizen
-  citizenName  String?
-  
-  // Status
+
+  // Modul-System (appointment optionale Referenz)
+  appointmentId String? @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  ticketNumber  String
+  position      Int?
+  citizenName   String?
+
   status       QueueStatus @default(WAITING)
-  priority     Int         @default(0) // Higher = more urgent
-  
-  // Timestamps
+  priority     Int         @default(0)
+
   createdAt    DateTime @default(now())
   calledAt     DateTime?
   startedAt    DateTime?
   completedAt  DateTime?
-  
-  // Calculated
-  estimatedWait Int?    // Minutes
-  
+
+  estimatedWait         Int?
+  estimatedWaitMinutes  Int?
+
   @@index([tenantId, locationId, status])
   @@index([ticketNumber])
 }
@@ -329,15 +451,60 @@ enum QueueStatus {
 model OpeningHours {
   id          String   @id @default(uuid())
   locationId  String
-  
-  dayOfWeek   Int      // 0=Monday, 6=Sunday
-  openTime    String   // "08:00"
-  closeTime   String   // "16:00"
-  
-  // For specific date overrides
+  location    Location @relation(fields: [locationId], references: [id])
+
+  dayOfWeek   Int
+  openTime    String
+  closeTime   String
+  breakStart  String?
+  breakEnd    String?
+
   specificDate DateTime? @db.Date
-  closed       Boolean  @default(false) // Holiday/closure
-  note         String?  // z.B. "Feiertag"
-  
+  closed       Boolean  @default(false)
+  note         String?
+  active       Boolean  @default(true)
+
   @@index([locationId, dayOfWeek])
+}
+
+// ============================================================
+// Closed Days (Feiertage/Schliessungen) - Modul-System
+// ============================================================
+model ClosedDay {
+  id          String   @id @default(uuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+
+  date        DateTime @db.Date
+  recurring   Boolean  @default(false)
+  note        String?
+
+  @@index([locationId, date])
+}
+
+// ============================================================
+// Notifications Log
+// ============================================================
+model Notification {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  type          String   // BOOKING_CONFIRMATION, REMINDER, CANCELLATION etc.
+  channel       String   // EMAIL, SMS, PUSH
+
+  recipient     String
+  subject       String?
+  body          String?
+
+  status        String   @default("PENDING")
+  referenceType String?
+  referenceId   String?
+  error         String?
+  sentAt        DateTime?
+
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([referenceId])
 }

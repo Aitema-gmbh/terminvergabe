@@ -12,6 +12,7 @@ import {
   createBooking,
   cancelBooking,
   lookupBooking,
+  checkinByCode,
 } from "./booking.service.js";
 import { bookingRateLimit } from "../../middleware/rateLimit.js";
 
@@ -118,6 +119,22 @@ export async function bookingRoutes(app: FastifyInstance) {
     handler: async (request, reply) => {
       const { bookingCode } = lookupBookingSchema.parse(request.params);
       const result = await lookupBooking(bookingCode);
+      return { data: result };
+    },
+  });
+
+  /**
+   * POST /api/v1/:tenantSlug/booking/checkin/:bookingCode
+   * T2: QR-Code Check-in - Buerger checkt per QR-Code ein.
+   */
+  app.post("/checkin/:bookingCode", {
+    schema: {
+      tags: ["booking"],
+      summary: "QR-Code Check-in",
+    },
+    handler: async (request, reply) => {
+      const { bookingCode } = request.params as { bookingCode: string };
+      const result = await checkinByCode(bookingCode);
       return { data: result };
     },
   });

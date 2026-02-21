@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import ICalCalendar from "ical-generator";
 import { getConfig } from "../../config.js";
 import { prisma } from "../../server.js";
 
@@ -14,11 +15,18 @@ const transporter = nodemailer.createTransport({
       : undefined,
 });
 
+interface EmailAttachment {
+  filename: string;
+  content: string;
+  contentType: string;
+}
+
 interface EmailData {
   to: string;
   subject: string;
   html: string;
   text: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -32,6 +40,7 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
       subject: data.subject,
       html: data.html,
       text: data.text,
+      attachments: data.attachments,
     });
     return true;
   } catch (err) {
@@ -139,11 +148,25 @@ Buchungscode: ${data.bookingCode}
 
 ${data.requiredDocuments.length > 0 ? `Bitte bringen Sie mit: ${data.requiredDocuments.join(", ")}` : ""}`;
 
+
+  // T1: iCal Attachment generieren und an Bestaetigung anhaengen
+  const cal = ICalCalendar({ name: 'aitema|Termin' });
+  cal.createEvent({
+    start: startDate,
+    end: endDate,
+    summary: data.serviceName + ' - ' + data.locationName,
+    location: data.locationAddress,
+    id: 'booking-' + data.bookingCode + '@aitema.de',
+    description: 'Buchungscode: ' + data.bookingCode,
+  });
+  const icsContent = cal.toString();
+
   return {
     to: "",
     subject: `Terminbestaetigung: ${data.serviceName} am ${dateStr}`,
     html,
     text,
+    attachments: [{ filename: 'termin-' + data.bookingCode + '.ics', content: icsContent, contentType: 'text/calendar; charset=utf-8' }],
   };
 }
 

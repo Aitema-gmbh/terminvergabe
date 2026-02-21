@@ -15,6 +15,7 @@ import {
 } from "./booking.schema.js";
 import { addMinutes, startOfDay, endOfDay, startOfMonth, endOfMonth, parseISO, addDays, addHours } from "date-fns";
 import { nanoid } from "nanoid";
+import { generateQrDataUrl } from "../../services/qrcode.service.js";
 import { Queue } from "bullmq";
 import Redis from "ioredis";
 import { getConfig } from "../../config.js";
@@ -351,6 +352,14 @@ export async function createBooking(
       });
     }
 
+    // T2: QR-Code generieren (graceful – kein Fehler bei Problemen)
+    let qrCodeDataUrl: string | null = null;
+    try {
+      qrCodeDataUrl = await generateQrDataUrl(bookingCode);
+    } catch {
+      // QR-Code Generierung ist optional
+    }
+
     return {
       id: appointment.id,
       bookingCode,
@@ -359,6 +368,7 @@ export async function createBooking(
       scheduledEnd: appointment.scheduledEnd,
       service: appointment.service,
       location: appointment.location,
+      qrCodeDataUrl,
     };
   } finally {
     // Release lock
@@ -482,5 +492,58 @@ export async function lookupBooking(bookingCode: string) {
     location: appointment.location,
     citizenName: appointment.citizenName,
     createdAt: appointment.createdAt,
+  };
+}
+
+
+/**
+ * T2: Check in a citizen via QR-Code scan.
+ */
+export async function checkinByCode(bookingCode: string) {
+  const appointment = await prisma.appointment.findUnique({
+    where: { bookingCode },
+    include: {
+      service: { select: { name: true } },
+      location: { select: { name: true } },
+    },
+  });
+
+  if (!appointment) {
+    throw { statusCode: 404, message: 'Termin nicht gefunden.' };
+  }
+
+  if (appointment.status === 'CANCELLED') {
+    throw { statusCode: 400, message: 'Termin wurde storniert.' };
+  }
+
+  if (appointment.status === 'CHECKED_IN' || appointment.status === 'IN_PROGRESS' || appointment.status === 'COMPLETED') {
+    return {
+      alreadyCheckedIn: true,
+      bookingCode: appointment.bookingCode,
+      status: appointment.status,
+      service: appointment.service,
+      location: appointment.location,
+    };
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { bookingCode },
+    data: {
+      status: 'CHECKED_IN',
+      checkedInAt: new Date(),
+    },
+    include: {
+      service: { select: { name: true } },
+      location: { select: { name: true } },
+    },
+  });
+
+  return {
+    alreadyCheckedIn: false,
+    bookingCode: updated.bookingCode,
+    status: updated.status,
+    checkedInAt: updated.checkedInAt,
+    service: updated.service,
+    location: updated.location,
   };
 }
