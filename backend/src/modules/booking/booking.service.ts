@@ -19,10 +19,17 @@ import { generateQrDataUrl } from "../../services/qrcode.service.js";
 import { Queue } from "bullmq";
 import Redis from "ioredis";
 import { getConfig } from "../../config.js";
+import { enqueueWaitlistMatch } from "../waitlist/waitlist.job.js";
+
 
 const config = getConfig();
+const _redisUrl = new URL(config.REDIS_URL.replace('redis://', 'http://'));
 const notificationQueue = new Queue("notifications", {
-  connection: new Redis(config.REDIS_URL),
+  connection: {
+    host: _redisUrl.hostname,
+    port: parseInt(_redisUrl.port || "6379"),
+    password: _redisUrl.password || undefined,
+  },
 });
 
 // Lock duration for slot reservation during booking (5 minutes)
@@ -301,6 +308,7 @@ export async function createBooking(
       // Create appointment
       const appt = await tx.appointment.create({
         data: {
+          tenantId,
           locationId: input.locationId,
           serviceId: input.serviceId,
           resourceId,
@@ -315,6 +323,9 @@ export async function createBooking(
           status: "CONFIRMED",
           source: "ONLINE",
           notes: input.notes,
+          // D2: Video-Termin
+          appointmentType: input.appointmentType || "inperson",
+          jitsiRoomId: input.appointmentType === "video" ? ("aitema-" + bookingCode) : null,
         },
         include: {
           service: { select: { name: true, durationMinutes: true, requiresDocuments: true, fee: true } },
@@ -340,14 +351,14 @@ export async function createBooking(
         bookingCode,
         data: {
           citizenName: input.citizenName,
-          serviceName: appointment.service.name,
-          locationName: appointment.location.name,
-          locationAddress: `${appointment.location.address}, ${appointment.location.city}`,
+          serviceName: (appointment as any).service?.name || "",
+          locationName: (appointment as any).location?.name || "",
+          locationAddress: ((appointment as any).location?.address || "") + ", " + ((appointment as any).location?.city || ""),
           scheduledStart: slotStart.toISOString(),
           scheduledEnd: slotEnd.toISOString(),
           bookingCode,
-          requiredDocuments: appointment.service.requiresDocuments,
-          fee: appointment.service.fee,
+          requiredDocuments: (appointment as any).service?.requiresDocuments || [],
+          fee: (appointment as any).service?.fee,
         },
       });
     }
@@ -360,15 +371,21 @@ export async function createBooking(
       // QR-Code Generierung ist optional
     }
 
+    const jitsiUrl = input.appointmentType === "video"
+      ? ("https://meet.jit.si/aitema-" + bookingCode)
+      : null;
+
     return {
       id: appointment.id,
       bookingCode,
       status: appointment.status,
       scheduledStart: appointment.scheduledStart,
       scheduledEnd: appointment.scheduledEnd,
-      service: appointment.service,
-      location: appointment.location,
+      service: (appointment as any).service,
+      location: (appointment as any).location,
       qrCodeDataUrl,
+      appointmentType: input.appointmentType || "inperson",
+      jitsiUrl,
     };
   } finally {
     // Release lock
@@ -460,6 +477,20 @@ export async function cancelBooking(
     });
   }
 
+
+  // D1: Warteliste - freigewordenen Slot anbieten
+  if (appointment.scheduledStart && appointment.scheduledEnd) {
+    setImmediate(() => {
+      enqueueWaitlistMatch(
+        tenantId,
+        appointment.serviceId,
+        appointment.locationId,
+        appointment.scheduledStart!,
+        appointment.scheduledEnd!
+      ).catch(console.error);
+    });
+  }
+
   return { success: true, message: "Termin wurde storniert." };
 }
 
@@ -521,8 +552,8 @@ export async function checkinByCode(bookingCode: string) {
       alreadyCheckedIn: true,
       bookingCode: appointment.bookingCode,
       status: appointment.status,
-      service: appointment.service,
-      location: appointment.location,
+      service: (appointment as any).service,
+      location: (appointment as any).location,
     };
   }
 

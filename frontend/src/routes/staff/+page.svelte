@@ -11,7 +11,34 @@
   let lastUpdated = '';
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const TENANT = import.meta.env.VITE_TENANT_SLUG || 'musterstadt';
 
+  // D1: Warteliste
+  let waitlistData: any = { total: 0, byService: {} };
+  let activeTab: 'termine' | 'warteliste' = 'termine';
+
+  async function loadWaitlist() {
+    try {
+      const resp = await fetch(`${API}/api/v1/${TENANT}/waitlist`);
+      if (resp.ok) {
+        waitlistData = await resp.json();
+      }
+    } catch (e) {
+      console.error('Waitlist load failed:', e);
+    }
+  }
+
+  async function removeWaitlistEntry(id: string) {
+    try {
+      await fetch(`${API}/api/v1/${TENANT}/waitlist/${id}`, { method: 'DELETE' });
+      await loadWaitlist();
+    } catch (e) {
+      console.error('Remove failed:', e);
+    }
+  }
+
+
+  function asWaitlistGroup(g: any): { serviceName: string; count: number; entries: any[] } { return g; }
   async function loadData() {
     try {
       const apptResp = await fetch(`${API}/api/v1/staff/appointments?date=${selectedDate}`);
@@ -32,6 +59,8 @@
       console.error('Failed to load data:', e);
       loading = false;
     }
+    // D1: Warteliste parallel laden
+    loadWaitlist();
   }
 
   async function callNext() {
@@ -262,6 +291,52 @@
     </div>
   </div>
 
+
+  <!-- D1: Tab-Navigation -->
+  <div class="tab-nav" role="tablist">
+    <button class="tab-btn" class:tab-btn-active={activeTab === 'termine'}
+      role="tab" aria-selected={activeTab === 'termine'}
+      on:click={() => activeTab = 'termine'}>
+      Termine heute ({appointments.length})
+    </button>
+    <button class="tab-btn" class:tab-btn-active={activeTab === 'warteliste'}
+      role="tab" aria-selected={activeTab === 'warteliste'}
+      on:click={() => { activeTab = 'warteliste'; loadWaitlist(); }}>
+      Warteliste
+      {#if waitlistData.total > 0}<span class="tab-badge">{waitlistData.total}</span>{/if}
+    </button>
+  </div>
+
+  <!-- D1: Warteliste Panel -->
+  {#if activeTab === 'warteliste'}
+    <div class="waitlist-panel">
+      {#if waitlistData.total === 0}
+        <div class="empty-state"><p class="empty-title">Keine Eintraege auf der Warteliste.</p></div>
+      {:else}
+        {#each Object.entries(waitlistData.byService) as [svcId, grp]}
+          <div class="wl-service-group">
+            <h3 class="wl-service-title">{asWaitlistGroup(grp).serviceName} <span class="wl-count-badge">{asWaitlistGroup(grp).count}</span></h3>
+            {#if asWaitlistGroup(grp).entries}{#each asWaitlistGroup(grp).entries as entry}
+              <div class="wl-entry">
+                <div class="wl-entry-info">
+                  <span class="wl-name">{entry.name}</span>
+                  <span class="wl-phone">{entry.phone}</span>
+                  {#if entry.location}<span class="wl-location">{entry.location}</span>{/if}
+                </div>
+                <div class="wl-entry-meta">
+                  <span class="wl-status wl-status-{entry.status.toLowerCase()}">{entry.status}</span>
+                  {#if entry.offeredSlotStart}
+                    <span class="wl-offered">Angebot: {new Date(entry.offeredSlotStart).toLocaleDateString('de-DE')} {new Date(entry.offeredSlotStart).toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'})} Uhr</span>
+                  {/if}
+                  <button class="wl-remove-btn" on:click={() => removeWaitlistEntry(entry.id)}>Entfernen</button>
+                </div>
+              </div>
+            {/each}{/if}
+          </div>
+        {/each}
+      {/if}
+    </div>
+  {:else}
   <!-- Appointments Section -->
   <div class="appointments-section">
     <div class="section-header">
@@ -314,7 +389,23 @@
                 <td>
                   <code class="booking-code">{apt.bookingRef}</code>
                 </td>
-                <td class="name-cell">{apt.citizenName}</td>
+                <td class="name-cell">
+                  {apt.citizenName}
+                  {#if apt.appointmentType === 'video'}
+                    <span class="video-badge" title="Video-Termin" aria-label="Video-Termin">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <rect x="0.5" y="2" width="7" height="8" rx="1.5" stroke="#3b82f6" stroke-width="1.2"/>
+                        <path d="M8 4.5l3.5-2v7L8 7.5V4.5z" stroke="#3b82f6" stroke-width="1.2" stroke-linejoin="round"/>
+                      </svg>
+                      Video
+                    </span>
+                    {#if apt.jitsiRoomId}
+                      <a href="https://meet.jit.si/{apt.jitsiRoomId}" target="_blank" rel="noopener noreferrer" class="video-room-btn" aria-label="Video-Raum betreten">
+                        Raum betreten
+                      </a>
+                    {/if}
+                  {/if}
+                </td>
                 <td class="service-cell">{apt.service?.name || '-'}</td>
                 <td class="status-risk-cell">
                   <span class="status-pill"
@@ -365,6 +456,7 @@
       </div>
     {/if}
   </div>
+  {/if}<!-- end activeTab termine -->
 </div>
 
 <style>
@@ -572,4 +664,144 @@
   .risk-medium { background: #fffbeb; color: #92400e; border-color: #fde68a; }
   .risk-low    { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 
+
+  /* ── D1: Tab Navigation ─────────────────────────────────────── */
+  .tab-nav {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: #f1f5f9;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .tab-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn-active {
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 50px;
+  }
+
+  /* ── D1: Warteliste Panel ───────────────────────────────────── */
+  .waitlist-panel { padding: 0.5rem 0; }
+  .wl-service-group {
+    margin-bottom: 1.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.875rem;
+    overflow: hidden;
+  }
+  .wl-service-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    padding: 0.875rem 1.25rem;
+    margin: 0;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .wl-count-badge {
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 50px;
+  }
+  .wl-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 1rem;
+  }
+  .wl-entry:last-child { border-bottom: none; }
+  .wl-entry-info { display: flex; flex-direction: column; gap: 0.2rem; }
+  .wl-name { font-weight: 600; color: #0f172a; font-size: 0.9rem; }
+  .wl-phone { font-size: 0.8rem; color: #64748b; }
+  .wl-location { font-size: 0.75rem; color: #94a3b8; }
+  .wl-entry-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .wl-status {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .wl-status-waiting { background: #fef9c3; color: #854d0e; }
+  .wl-status-offered { background: #dbeafe; color: #1e40af; }
+  .wl-status-confirmed { background: #dcfce7; color: #14532d; }
+  .wl-offered { font-size: 0.75rem; color: #3b82f6; }
+  .wl-remove-btn {
+    font-size: 0.75rem;
+    color: #ef4444;
+    background: none;
+    border: 1px solid #fca5a5;
+    border-radius: 0.375rem;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .wl-remove-btn:hover { background: #fef2f2; }
+
+  /* ── D2: Video-Badge in Tabelle ─────────────────────────────── */
+  .video-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #eff6ff;
+    color: #3b82f6;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 50px;
+    margin-left: 0.4rem;
+    border: 1px solid #bfdbfe;
+  }
+  .video-room-btn {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.375rem;
+    padding: 0.2rem 0.5rem;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .video-room-btn:hover { background: #dbeafe; }
 </style>

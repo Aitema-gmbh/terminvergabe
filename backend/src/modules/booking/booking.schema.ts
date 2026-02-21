@@ -23,6 +23,7 @@ export const createBookingSchema = z.object({
   citizenPhone: z.string().min(5).max(30).optional(),
   notes: z.string().max(1000).optional(),
   preferredLanguage: z.enum(["de", "en", "tr", "ar", "uk"]).default("de"),
+  appointmentType: z.enum(["inperson", "video"]).default("inperson"), // D2: Video-Termin
 });
 
 export const cancelBookingSchema = z.object({

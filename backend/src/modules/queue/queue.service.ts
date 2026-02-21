@@ -174,12 +174,12 @@ export async function callNextTicket(
   // M2: Publish to citizen channel for no-show push notification
   // Channel: citizen:<ticketNumber> (Buerger abonniert mit seiner Wartenummer)
   await redisPub.publish(
-    ,
+    ('citizen:' + calledTicket.ticketNumber),
     JSON.stringify({
       type: TICKET_CALLED,
       ticketNumber: calledTicket.ticketNumber,
       counterName,
-      message: ,
+      message: ('Ticket ' + calledTicket.ticketNumber + ': Bitte zu ' + counterName),
       timestamp: new Date().toISOString(),
     })
   );

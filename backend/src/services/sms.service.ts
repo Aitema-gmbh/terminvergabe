@@ -139,6 +139,43 @@ export abstract class SmsGateway {
     return this.send(normalized, body);
   }
 
+
+  // D1: Wartelisten-Angebot SMS
+  async sendWaitlistOffer(
+    phone: string,
+    serviceName: string,
+    date: string,
+    time: string,
+    confirmUrl: string,
+  ): Promise<SmsResult> {
+    const normalized = this.normalizePhone(phone);
+    if (this.isRateLimited(normalized)) return { success: false, error: 'rate_limited' };
+    const body = this.truncate(
+      'aitema|Termin: Termin verfuegbar! ' +
+      serviceName + ' am ' + date + ' um ' + time + ' Uhr. ' +
+      'Bestaetigen Sie in 2h: ' + confirmUrl
+    );
+    return this.send(normalized, body);
+  }
+
+  // D2: Video-Termin Bestaetigung SMS
+  async sendVideoConfirmation(
+    phone: string,
+    bookingRef: string,
+    date: string,
+    time: string,
+    jitsiUrl: string,
+  ): Promise<SmsResult> {
+    const normalized = this.normalizePhone(phone);
+    if (this.isRateLimited(normalized)) return { success: false, error: 'rate_limited' };
+    if (!(await this.hasSmsOptIn(normalized))) return { success: false, error: 'no_opt_in' };
+    const body = this.truncate(
+      'aitema|Termin: Video-Termin ' + bookingRef + ' bestaetigt! ' +
+      date + ' um ' + time + ' Uhr. ' +
+      'Link: ' + jitsiUrl + ' (5 Min. vorher einwaehlen)'
+    );
+    return this.send(normalized, body);
+  }
   async sendCancellationConfirm(
     phone: string,
     bookingRef: string,
