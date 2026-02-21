@@ -93,6 +93,37 @@
     CANCELLED:   { bg: '#f9fafb', text: '#6b7280' },
   };
 
+  // No-Show-Risiko
+  let riskScores: Record<string, { score: number; level: string }> = {};
+
+  async function loadRiskScore(bookingId: string) {
+    if (riskScores[bookingId]) return riskScores[bookingId];
+    try {
+      const res = await fetch(`${API}/api/v1/bookings/${bookingId}/risk-score`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      riskScores[bookingId] = data;
+      riskScores = { ...riskScores };
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  function getRiskBadgeClass(level: string): string {
+    return level === 'high'   ? 'risk-badge risk-high' :
+           level === 'medium' ? 'risk-badge risk-medium' :
+                                'risk-badge risk-low';
+  }
+
+  $: highRiskCount = Object.values(riskScores).filter(r => r.level === 'high').length;
+
+  $: if (appointments.length > 0) {
+    appointments
+      .filter((a: any) => ['BOOKED', 'CONFIRMED'].includes(a.status))
+      .forEach((a: any) => loadRiskScore(a.id));
+  }
+
   $: completionRate = appointments.length > 0
     ? Math.round((stats.completed / appointments.length) * 100)
     : 0;
@@ -215,6 +246,20 @@
         <p class="stat-label">Nicht erschienen</p>
       </div>
     </div>
+
+    <div class="stat-card" style="border-left: 3px solid #ef4444;">
+      <div class="stat-icon stat-icon-red">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7.5" stroke="#ef4444" stroke-width="1.5"/>
+          <path d="M10 6v4" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="10" cy="14" r="1" fill="#ef4444"/>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <p class="stat-value" style="color: #ef4444;">{highRiskCount}</p>
+        <p class="stat-label">Hohe No-Show-Risiken</p>
+      </div>
+    </div>
   </div>
 
   <!-- Appointments Section -->
@@ -271,11 +316,17 @@
                 </td>
                 <td class="name-cell">{apt.citizenName}</td>
                 <td class="service-cell">{apt.service?.name || '-'}</td>
-                <td>
+                <td class="status-risk-cell">
                   <span class="status-pill"
                         style="background: {statusColors[apt.status]?.bg || '#f9fafb'}; color: {statusColors[apt.status]?.text || '#6b7280'}">
                     {statusLabels[apt.status] || apt.status}
                   </span>
+                  {#if riskScores[apt.id]}
+                    <span class="{getRiskBadgeClass(riskScores[apt.id].level)}">
+                      {riskScores[apt.id].level === 'high' ? '!' : riskScores[apt.id].level === 'medium' ? '~' : 'ok'}
+                      {riskScores[apt.id].score}%
+                    </span>
+                  {/if}
                 </td>
                 <td class="actions-cell">
                   {#if apt.status === 'BOOKED' || apt.status === 'CONFIRMED'}
@@ -506,4 +557,19 @@
     .stats-grid { grid-template-columns: 1fr 1fr; }
     .call-next-btn span { display: none; }
   }
+
+  /* Risk Badge */
+  .status-risk-cell { vertical-align: middle; }
+  .risk-badge {
+    display: inline-flex; align-items: center;
+    margin-left: 0.375rem;
+    padding: 0.2rem 0.5rem; border-radius: 9999px;
+    font-size: 0.7rem; font-weight: 700;
+    border: 1px solid currentColor;
+    vertical-align: middle;
+  }
+  .risk-high   { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .risk-medium { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .risk-low    { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+
 </style>

@@ -12,6 +12,7 @@ declare module 'fastify' {
   }
 }
 import { bookingService } from '../services/booking.service';
+import { calculateNoShowRisk, getRiskLevel } from '../services/noshow-risk.service';
 
 export async function bookingRoutes(app: FastifyInstance) {
   
@@ -224,5 +225,47 @@ export async function bookingRoutes(app: FastifyInstance) {
     });
 
     return { locations };
+  });
+
+  // ============================================================
+  // Staff: Risk Score for Appointment
+  // ============================================================
+  app.get('/api/v1/bookings/:id/risk-score', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+
+    const booking = await app.prisma.appointment.findUnique({
+      where: { id },
+    });
+    if (!booking) return reply.status(404).send({ error: 'Not found' });
+
+    // Historische Buchungen des Buergers (anhand Name + E-Mail als Identifikator)
+    const pastBookings = await app.prisma.appointment.count({
+      where: {
+        citizenEmail: booking.citizenEmail || undefined,
+        id: { not: booking.id },
+      },
+    });
+
+    const now = new Date();
+    const appointmentDate = booking.startTime;
+    const bookingCreated = booking.createdAt;
+
+    const factors = {
+      bookingLeadDays: Math.floor(
+        (appointmentDate.getTime() - bookingCreated.getTime()) / (1000 * 60 * 60 * 24)
+      ),
+      appointmentHour: appointmentDate.getHours(),
+      appointmentDayOfWeek: appointmentDate.getDay(),
+      hasPhone: !!booking.citizenPhone,
+      isFirstBooking: pastBookings === 0,
+      bookingLeadMinutes: Math.floor(
+        (appointmentDate.getTime() - now.getTime()) / (1000 * 60)
+      ),
+    };
+
+    const score = calculateNoShowRisk(factors);
+    const level = getRiskLevel(score);
+
+    return { score, level, factors, bookingId: id };
   });
 }
