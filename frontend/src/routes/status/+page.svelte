@@ -2,9 +2,14 @@
   aitema|Termin - Termin-Status-Seite für Bürger
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { requestNotificationPermission, showPushNotification, getNotificationStatus } from "$lib/notifications";
 
   let bookingRef = "";
+  // M2: No-Show Push Notification State
+  let ws: WebSocket | null = null;
+  let notificationStatus: string = "default";
+  let calledNotification: string | null = null;
   let appointment: AppointmentStatus | null = null;
   let loading = false;
   let error = "";
@@ -80,14 +85,76 @@
     },
   };
 
-  onMount(() => {
+  onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref) {
       bookingRef = ref;
-      lookupAppointment();
+      await lookupAppointment();
+    }
+    // M2: Benachrichtigungs-Status initialisieren
+    if (typeof window !== "undefined") {
+      notificationStatus = getNotificationStatus();
     }
   });
+
+  onDestroy(() => {
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+  });
+
+  // M2: WebSocket fuer Wartenummer-Updates aufbauen (nur wenn Status == CHECKED_IN oder WAITING)
+  function setupCitizenWebSocket(ticketNumber: string) {
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+    const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsBase = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/^https?:/, wsProto)
+      : `${wsProto}//${location.host}`;
+    const wsUrl = `${wsBase}/api/v1/default/queue/ws/citizen/${encodeURIComponent(ticketNumber)}`;
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("Citizen WebSocket verbunden fuer Ticket:", ticketNumber);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "TICKET_CALLED") {
+          calledNotification = data.message || "Ihre Nummer wird aufgerufen!";
+          showPushNotification(
+            "Ihre Wartenummer wird aufgerufen!",
+            data.message || `Bitte begeben Sie sich zu ${data.counterName || "Ihrem Schalter"}.`
+          );
+        }
+      } catch (err) {
+        console.error("WS message parse error:", err);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.warn("Citizen WebSocket Fehler (Fallback auf Polling):", err);
+    };
+
+    ws.onclose = () => {
+      console.log("Citizen WebSocket getrennt");
+    };
+  }
+
+  // M2: Browser-Benachrichtigung anfordern
+  async function enableNotifications() {
+    const granted = await requestNotificationPermission();
+    notificationStatus = getNotificationStatus();
+    if (granted) {
+      console.log("Browser-Benachrichtigungen aktiviert");
+    }
+  }
 
   async function lookupAppointment() {
     if (!bookingRef.trim()) {
@@ -109,6 +176,11 @@
         return;
       }
       appointment = await res.json();
+      // M2: WebSocket aufbauen fuer Echtzeit-Aufrufsbenachrichtigung
+      if (appointment && appointment.bookingRef &&
+          ['CHECKED_IN', 'CONFIRMED', 'BOOKED'].includes(appointment.status)) {
+        setupCitizenWebSocket(appointment.bookingRef);
+      }
     } catch {
       error = "Verbindungsfehler. Bitte prüfen Sie Ihre Internetverbindung.";
     } finally {
@@ -245,6 +317,32 @@
           <path d="M5.5 9l2.5 2.5 5-5" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Ihr Termin wurde erfolgreich storniert.
+      </div>
+    {/if}
+
+    <!-- M2: No-Show Push Notification Banners -->
+    {#if calledNotification}
+      <div class="notification-called" role="alert" aria-live="assertive">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <div>
+          <strong>Sie werden aufgerufen!</strong>
+          <p>{calledNotification}</p>
+        </div>
+        <button class="notif-close" on:click={() => calledNotification = null} aria-label="Schliessen">x</button>
+      </div>
+    {/if}
+
+    {#if notificationStatus === "default" && appointment && ["CHECKED_IN", "CONFIRMED", "BOOKED"].includes(appointment.status)}
+      <div class="notification-prompt" role="status">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <p>Aktivieren Sie Browser-Benachrichtigungen, um sofort informiert zu werden wenn Sie aufgerufen werden.</p>
+        <button class="btn btn-sm btn-primary" on:click={enableNotifications}>
+          Benachrichtigungen aktivieren
+        </button>
       </div>
     {/if}
 
@@ -539,5 +637,33 @@
     .appt-grid { grid-template-columns: 1fr; }
     .appt-qr { justify-content: flex-start; }
     .status-banner { flex-wrap: wrap; }
+  }
+
+  /* M2: Notification Banners */
+  .notification-called {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    background: #dcfce7; border: 2px solid #16a34a; border-radius: 10px;
+    padding: 1rem 1.25rem; margin-bottom: 1rem; position: relative;
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+  .notification-called strong { color: #15803d; font-size: 1rem; display: block; }
+  .notification-called p { color: #166534; margin: 0.25rem 0 0; font-size: 0.875rem; }
+  .notification-called svg { color: #16a34a; flex-shrink: 0; margin-top: 2px; }
+  .notif-close {
+    position: absolute; top: 0.5rem; right: 0.75rem;
+    background: none; border: none; cursor: pointer;
+    color: #15803d; font-size: 1rem; padding: 0.25rem 0.5rem;
+  }
+  .notification-prompt {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+    padding: 0.875rem 1rem; margin-bottom: 1rem;
+  }
+  .notification-prompt p { flex: 1; margin: 0; font-size: 0.875rem; color: #1d4ed8; }
+  .notification-prompt svg { color: #3b82f6; flex-shrink: 0; }
+  .btn-sm { padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
   }
 </style>

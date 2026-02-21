@@ -8,6 +8,7 @@ import {
   getQueueStatus,
 } from "./queue.service.js";
 import { registerQueueWebSocket } from "./queue.ws.js";
+import { registerCitizenWebSocket } from "./citizen.ws.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 const issueTicketSchema = z.object({
@@ -99,6 +100,9 @@ export async function queueRoutes(app: FastifyInstance) {
     },
   });
 
-  // Register WebSocket route
+  // Register WebSocket routes
   registerQueueWebSocket(app);
+
+  // M2: Register citizen WebSocket for no-show push notifications
+  registerCitizenWebSocket(app);
 }

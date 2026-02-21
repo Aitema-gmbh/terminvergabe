@@ -10,6 +10,11 @@
   const steps = ['Standort', 'Dienstleistung', 'Termin', 'Daten', 'Bestaetigung'];
 </script>
 
+<svelte:head>
+  <!-- Plausible Analytics – cookiefrei, DSGVO-konform, kein Banner noetig -->
+  <script defer data-domain="termin.aitema.de" src="https://plausible.io/js/script.js"></script>
+</svelte:head>
+
 <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
 
 {#if !isKiosk}

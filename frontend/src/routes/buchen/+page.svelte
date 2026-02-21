@@ -98,6 +98,10 @@
           booking.qrCodeDataUrl = data.qrCodeDataUrl;
         }
         step = 4;
+        // M1: Plausible Custom Event – Termin gebucht
+        if (typeof window !== 'undefined' && (window as any).plausible) {
+          (window as any).plausible('termin_gebucht', { props: { service: selectedService?.name } });
+        }
       } else {
         error = data.error || 'Buchung fehlgeschlagen';
       }
