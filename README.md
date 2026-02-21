@@ -1,54 +1,99 @@
-# aitema|Termin – Open-Source-Terminvergabesystem
+# aitema|Termin
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/Aitema-gmbh/terminvergabe?style=social)](https://github.com/Aitema-gmbh/terminvergabe/stargazers)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://github.com/Aitema-gmbh/terminvergabe/pkgs/container/terminvergabe)
-[![OZG](https://img.shields.io/badge/OZG-konform-brightgreen)](https://aitema.de/loesungen/terminvergabe)
-[![opencode.de](https://img.shields.io/badge/opencode.de-Kompatibel-0069B4)](https://opencode.de)
-[![API Docs](https://img.shields.io/badge/API-Dokumentation-orange)](https://aitema.de/api-docs/terminvergabe)
+> Moderne, barrierefreie Terminvergabe für Behörden und kommunale Dienststellen.
 
-Modernes Online-Terminbuchungssystem für Bürgerbüros und Behörden – OZG-konform, SvelteKit-Frontend, kostenlos.
+[\![Status](https://img.shields.io/badge/Status-Live-brightgreen)](https://termin.aitema.de)
+[\![Stack](https://img.shields.io/badge/Stack-SvelteKit%20%7C%20Fastify%20%7C%20PostgreSQL-blue)](https://termin.aitema.de)
+[\![BFSG](https://img.shields.io/badge/BFSG-konform-009933)](https://termin.aitema.de)
+[\![OZG](https://img.shields.io/badge/OZG%202.0-ready-0066cc)](https://termin.aitema.de)
 
-## 🏛️ Warum aitema|Termin?
+## Screenshots
 
-Laut Studien verbringen Bürgerinnen und Bürger durchschnittlich 15 Minuten in der Warteschleife, um Behördentermine zu vereinbaren. aitema|Termin ermöglicht einfache Online-Buchung – ohne Lizenzkosten, DSGVO-konform, selbst-hostbar.
+| Buchungsportal | Buchungs-Wizard | Kiosk-Display |
+|:-:|:-:|:-:|
+| \![Buchungsportal](docs/screenshots/termin-buerger-start.png) | \![Wizard](docs/screenshots/termin-buchen-wizard.png) | \![Kiosk](docs/screenshots/termin-kiosk-display.png) |
 
-## 🚀 Schnellstart (Docker)
+| Staff-Dashboard |
+|:-:|
+| \![Dashboard](docs/screenshots/termin-staff-dashboard.png) |
 
-```bash
-git clone https://github.com/Aitema-gmbh/terminvergabe.git
-cd terminvergabe
-cp .env.example .env
-docker compose up -d
+## Features
+
+### Für Bürgerinnen und Bürger
+- **5-Schritt-Buchungsassistent** – Standort → Service → Termin → Daten → Bestätigung
+- **QR-Code Check-in** – Termin am Kiosk scannen, kein Warten an der Theke
+- **iCal-Export** – Termin direkt in Kalender übernehmen (Apple, Google, Outlook)
+- **SMS-Benachrichtigung** – Erinnerung und Statusupdates via Sipgate (DSGVO-konform)
+- **Mehrsprachigkeit** – DE, EN, TR, AR, RU
+- **Barrierefreiheit** – WCAG 2.1 AA (BFSG-Verpflichtung ab 28.06.2025)
+
+### Für Verwaltungsmitarbeitende
+- **Live-Queue-Dashboard** – WebSocket-basierte Echtzeit-Warteschlange
+- **NoShow-Scoring** – KI-gestützte Risikoeinschätzung (0–100)
+- **CalDAV-Feed** – Eigene Termine direkt im Kalender (Outlook, Apple Calendar)
+- **Kiosk-Display** – Großes Ticketanzeigesystem für Wartebereiche
+- **Plausible Analytics** – Cookiefreie Besucherstatistiken (DSGVO, kein Banner)
+
+## Technologie-Stack
+
+```
+Frontend:  SvelteKit + Tailwind CSS (aitema Design System)
+Backend:   Fastify / Node.js + Prisma ORM
+Queue:     BullMQ + Redis Pub/Sub
+Datenbank: PostgreSQL 16
+Echtzeit:  WebSocket (native)
+Analytics: Plausible (Self-hosted)
+Auth:      JWT + Keycloak SSO
+Deploy:    Docker Compose + Traefik (Hetzner)
 ```
 
-Öffne http://localhost:5173 – das Terminbuchungssystem ist bereit!
+## Schnellstart (Entwicklung)
 
-## ✨ Funktionen
+```bash
+# Voraussetzungen: Node.js 22+, Docker
+git clone https://github.com/Aitema-gmbh/terminvergabe.git
+cd terminvergabe
 
-- **5-Schritt-Buchungsassistent** – Standort → Service → Termin → Daten → Bestätigung
-- **QR-Code-Bestätigung** – Terminnachweis direkt auf dem Smartphone
-- **Kiosk-Display** – Große Anzeige für Wartenummern im Bürgerbüro
-- **Mitarbeiter-Dashboard** – Live-Warteschlange, schnelle Aktionen
-- **Mehrere Standorte** – Verschiedene Behördenstandorte verwaltbar
-- **OZG-konform** – Erfüllt Anforderungen des Online-Zugangsgesetzes
-- **Erinnerungsbenachrichtigungen** – Per E-Mail (konfigurierbar)
+# Backend
+cd backend && cp .env.example .env && npm install && npm run dev
 
-## 🏗️ Technologie
+# Frontend (Bürger-App)
+cd ../frontend && npm install && npm run dev
+```
 
-| Schicht | Technologie |
-|---------|-------------|
-| Frontend | SvelteKit 2 |
-| Styling | Tailwind CSS 4 |
-| Sprache | TypeScript |
-| Datenbank | PostgreSQL 15 |
-| Deployment | Docker Compose |
-| Lizenz | AGPL-3.0 |
+## Architektur
 
-## 📞 Kontakt & Support
+```
+termin.aitema.de
+├── /           → SvelteKit Bürger-App (Buchungsportal)
+├── /buchen     → 5-Step-Booking-Wizard
+├── /checkin    → QR-Code Check-in
+├── /staff      → Staff-Dashboard (Keycloak-geschützt)
+├── /display    → Kiosk-Anzeige (Warteraum-Monitor)
+└── /api        → Fastify REST API
+    ├── /api/v1/appointments
+    ├── /api/v1/queue
+    ├── /api/v1/services
+    └── /api/v1/locations
+```
 
-- **Bug melden:** [GitHub Issues](https://github.com/Aitema-gmbh/terminvergabe/issues)
-- **Kontakt:** kontakt@aitema.de
+## Dokumentation
+
+- [Architektur](docs/ARCHITECTURE.md)
+- [API-Referenz](docs/API.md)
+- [PRD Batch 1](docs/PRD-features-2026-02.md)
+- [PRD Batch 2](docs/PRD-features-2026-02-batch2.md)
+- [PRD Batch 3](docs/PRD-features-2026-02-batch3.md)
+
+## Compliance
+
+| Anforderung | Status |
+|-------------|--------|
+| OZG 2.0 | ✅ |
+| BFSG (WCAG 2.1 AA) | ✅ ab 28.06.2025 |
+| DSGVO (kein Google Fonts, Plausible) | ✅ |
+| BSI Grundschutz | 🔄 in Vorbereitung |
 
 ---
-*Entwickelt mit ❤️ in Deutschland | [aitema.de](https://aitema.de)*
+
+*Entwickelt von [aitema GmbH](https://aitema.de) · [Impressum](https://aitema.de/impressum)*
