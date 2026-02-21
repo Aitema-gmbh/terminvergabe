@@ -47,6 +47,7 @@ model Tenant {
   settings      TenantSettings?
   citizens      Citizen[]
   notifications Notification[]
+  waitlistEntries WaitlistEntry[]
 
   @@index([slug])
   @@index([ags])
@@ -137,6 +138,7 @@ model Location {
   resources   Resource[]
   openingHours OpeningHours[]
   closedDays  ClosedDay[]
+  waitlistEntries WaitlistEntry[]
 
   @@index([tenantId])
 }
@@ -165,6 +167,7 @@ model Service {
 
   color           String   @default("#3b82f6")
   icon            String?
+  supportsVideo   Boolean  @default(false)  // D2: Video-Termin
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -174,6 +177,7 @@ model Service {
   queueEntries    QueueEntry[]
   timeSlots       TimeSlot[]
   resourceServices ResourceService[]
+  waitlistEntries WaitlistEntry[]
 
   @@index([tenantId, category])
 }
@@ -369,6 +373,10 @@ model Appointment {
   // T3: SMS Opt-In
   smsOptIn        Boolean  @default(false)
 
+  // D2: Video-Termin
+  appointmentType String   @default("inperson") // inperson | video
+  jitsiRoomId     String?
+
   // Queue (optional)
   queueEntry      QueueEntry?
 
@@ -507,4 +515,50 @@ model Notification {
 
   @@index([tenantId])
   @@index([referenceId])
+}
+
+// ============================================================
+// D1: Warteliste (Automatische Warteliste bei Stornierungen)
+// ============================================================
+model WaitlistEntry {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  serviceId     String
+  service       Service   @relation(fields: [serviceId], references: [id])
+  locationId    String?
+  location      Location? @relation(fields: [locationId], references: [id])
+
+  name          String
+  phone         String
+  email         String?
+
+  preferredDates Json?    // Array: [{from: ISO, to: ISO}]
+
+  status        WaitlistStatus @default(WAITING)
+  token         String    @unique @default(cuid())
+
+  offeredSlotStart DateTime?
+  offeredSlotEnd   DateTime?
+  offeredAt        DateTime?
+  expiresAt        DateTime?
+
+  confirmedAt   DateTime?
+  declinedAt    DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, serviceId, status])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  CONFIRMED
+  DECLINED
+  EXPIRED
+  CANCELLED
 }

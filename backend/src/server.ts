@@ -14,6 +14,9 @@ import { queueRoutes } from "./modules/queue/queue.routes.js";
 import { displayRoutes } from "./modules/display/display.routes.js";
 import { adminRoutes } from "./modules/admin/admin.routes.js";
 import { calendarRoutes } from "./modules/admin/calendar.routes.js";
+import { waitlistRoutes } from "./modules/waitlist/waitlist.routes.js";
+import { startWaitlistWorker } from "./modules/waitlist/waitlist.job.js";
+
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { tenantMiddleware } from "./middleware/tenant.js";
 import { startNotificationWorker } from "./modules/notification/notification.worker.js";
@@ -126,6 +129,9 @@ async function buildApp() {
   // M3: CalDAV Staff-Kalender
   await app.register(calendarRoutes, { prefix: "/api/v1/admin" });
 
+  // D1: Warteliste
+  await app.register(waitlistRoutes, { prefix: "/api/v1/:tenantSlug/waitlist" });
+
   return app;
 }
 
@@ -134,6 +140,7 @@ async function start() {
 
   // Start notification worker
   startNotificationWorker();
+  startWaitlistWorker(); // D1: Warteliste-Worker
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {

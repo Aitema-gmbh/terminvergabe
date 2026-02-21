@@ -23,6 +23,9 @@
   // Result
   let booking: any = null;
   let error = '';
+  
+  // D2: Video-Termin
+  let appointmentType: 'inperson' | 'video' = 'inperson';
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const TENANT = import.meta.env.VITE_TENANT_SLUG || 'musterstadt';
@@ -86,6 +89,7 @@
           citizenName,
           citizenEmail,
           citizenPhone,
+          appointmentType,
         }),
       });
       const data = await resp.json();
@@ -793,5 +797,105 @@
     .form-split { grid-template-columns: 1fr; }
     .booking-summary { position: static; order: -1; }
     .confirmation-card { padding: 1.5rem; }
+  }
+
+  /* ── D2: Video-Typ-Auswahl ─────────────────────────────────── */
+  .video-type-selector {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 1rem;
+  }
+  .video-type-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 1rem;
+  }
+  .video-type-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.25rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #94a3b8;
+  }
+  .type-card:hover { border-color: rgba(59, 130, 246, 0.4); color: #cbd5e1; }
+  .type-card-active {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+  }
+  .type-card-icon { font-size: 1.75rem; }
+  .type-card-title { font-size: 0.9375rem; font-weight: 700; }
+  .type-card-sub { font-size: 0.75rem; opacity: 0.75; }
+  .video-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255,255,255,0.02);
+    border-radius: 0.5rem;
+  }
+
+  /* ── D2: Video-Box in Confirmation ─────────────────────────── */
+  .video-box {
+    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.06));
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .video-box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #93c5fd;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+  }
+  .video-box-sub { font-size: 0.85rem; color: #64748b; margin-bottom: 1rem; }
+  .btn-video-join {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-radius: 0.625rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+  .btn-video-join:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  }
+  .video-privacy {
+    font-size: 0.75rem;
+    color: #475569;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    line-height: 1.4;
   }
 </style>
