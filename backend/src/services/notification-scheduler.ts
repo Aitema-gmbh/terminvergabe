@@ -18,6 +18,7 @@ import timezone from 'dayjs/plugin/timezone.js';
 
 import { smsGateway } from './sms.service.js';
 import { pushService } from './push.service.js';
+import { calculateNoShowRisk, getRiskLevel } from './noshow-risk.service.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -142,6 +143,76 @@ async function processReminder1h(): Promise<void> {
   }
 }
 
+
+/**
+ * Taeglich um 07:00: Extra-SMS fuer High-Risk Termine (Score > 70).
+ */
+async function sendHighRiskReminders(): Promise<void> {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const dayStart = new Date(tomorrow);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(tomorrow);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const bookings = await prisma.appointment.findMany({
+    where: {
+      startTime: { gte: dayStart, lte: dayEnd },
+      status: AppointmentStatus.CONFIRMED,
+    },
+    select: {
+      id: true,
+      bookingRef: true,
+      startTime: true,
+      createdAt: true,
+      citizenPhone: true,
+      citizenEmail: true,
+      service: { select: { name: true } },
+    },
+  });
+
+  console.log(`[Scheduler] High-Risk-Check: ${bookings.length} Termine fuer morgen`);
+
+  for (const booking of bookings) {
+    const apptDate = booking.startTime;
+    const created = booking.createdAt;
+
+    const factors = {
+      bookingLeadDays: Math.floor(
+        (apptDate.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
+      ),
+      appointmentHour: apptDate.getHours(),
+      appointmentDayOfWeek: apptDate.getDay(),
+      hasPhone: !!booking.citizenPhone,
+      isFirstBooking: false,
+      bookingLeadMinutes: Math.floor(
+        (apptDate.getTime() - now.getTime()) / (1000 * 60)
+      ),
+    };
+
+    const score = calculateNoShowRisk(factors);
+    const level = getRiskLevel(score);
+
+    if (score > 70) {
+      console.log(`[Scheduler] High-Risk Extra-Reminder: ${booking.bookingRef} (Score: ${score}, Level: ${level})`);
+
+      if (booking.citizenPhone) {
+        const date = dayjs(apptDate).tz(TZ).format('DD.MM.YYYY');
+        const time = dayjs(apptDate).tz(TZ).format('HH:mm');
+
+        await smsGateway.sendBookingReminder(
+          booking.citizenPhone,
+          booking.bookingRef,
+          date,
+          time,
+        ).catch((e: Error) => console.error('[Scheduler] High-Risk SMS-Fehler:', e));
+      }
+    }
+  }
+}
+
 /**
  * Sendet Queue-Updates fuer alle aktiven Warteschlangen-Tickets.
  */
@@ -207,6 +278,9 @@ const reminderWorker = new Worker(
       case 'reminder-1h':
         await processReminder1h();
         break;
+      case 'high-risk-reminder':
+        await sendHighRiskReminders();
+        break;
       default:
         console.warn(`[Scheduler] Unbekannter Job: ${job.name}`);
     }
@@ -266,9 +340,21 @@ export async function startNotificationScheduler(): Promise<void> {
     },
   );
 
+  // High-Risk Extra-Reminder - taeglich um 07:00
+  await reminderQueue.add(
+    'high-risk-reminder',
+    {},
+    {
+      repeat: { pattern: '0 7 * * *', tz: TZ },
+      removeOnComplete: 50,
+      removeOnFail: 20,
+    },
+  );
+
   console.log('[Scheduler] Notification-Scheduler gestartet.');
   console.log('  - reminder-24h: taeglicher Check 08:00 Uhr');
   console.log('  - reminder-1h:  stündlicher Check');
+  console.log('  - high-risk-reminder: taeglich 07:00 Uhr');
   console.log('  - queue-update: alle 5 Minuten');
 }
 
