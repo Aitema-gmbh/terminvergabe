@@ -4,6 +4,13 @@
  * Fastify routes for appointment booking and queue management.
  */
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { PrismaClient } from '@prisma/client';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    prisma: PrismaClient;
+  }
+}
 import { bookingService } from '../services/booking.service';
 
 export async function bookingRoutes(app: FastifyInstance) {

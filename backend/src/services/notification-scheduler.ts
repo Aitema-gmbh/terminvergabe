@@ -33,8 +33,10 @@ const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379'
 
 // ─── Queues ───────────────────────────────────────────────────────────────────
 
-const reminderQueue = new Queue('notification:reminders', { connection });
-const queueUpdateQueue = new Queue('notification:queue-updates', { connection });
+// @ts-ignore - BullMQ/ioredis version type mismatch (pre-existing)
+const reminderQueue = new Queue('notification:reminders', { connection: connection as any });
+// @ts-ignore
+const queueUpdateQueue = new Queue('notification:queue-updates', { connection: connection as any });
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
@@ -197,6 +199,7 @@ async function processQueueUpdates(): Promise<void> {
 
 // ─── Worker ───────────────────────────────────────────────────────────────────
 
+// @ts-ignore - BullMQ/ioredis version type mismatch
 const reminderWorker = new Worker(
   'notification:reminders',
   async (job: Job) => {
@@ -211,15 +214,16 @@ const reminderWorker = new Worker(
         console.warn(`[Scheduler] Unbekannter Job: ${job.name}`);
     }
   },
-  { connection },
+  { connection: connection as any },
 );
 
+// @ts-ignore - BullMQ/ioredis version type mismatch
 const queueUpdateWorker = new Worker(
   'notification:queue-updates',
   async () => {
     await processQueueUpdates();
   },
-  { connection },
+  { connection: connection as any },
 );
 
 reminderWorker.on('failed', (job, err) => {

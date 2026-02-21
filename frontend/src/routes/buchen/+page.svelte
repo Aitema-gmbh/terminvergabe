@@ -91,6 +91,12 @@
       const data = await resp.json();
       if (data.success) {
         booking = data;
+        // T2: QR-Code aus Antwort
+        if (data.appointment?.qrCodeDataUrl) {
+          booking.qrCodeDataUrl = data.appointment.qrCodeDataUrl;
+        } else if (data.qrCodeDataUrl) {
+          booking.qrCodeDataUrl = data.qrCodeDataUrl;
+        }
         step = 4;
       } else {
         error = data.error || 'Buchung fehlgeschlagen';
@@ -533,12 +539,14 @@
         </p>
       {/if}
 
-      <!-- QR Code Box -->
+      <!-- T2: QR-Code zum Check-in -->
       <div class="qr-container">
-        <div class="qr-box">
-          <div class="qr-inner">QR</div>
-        </div>
-        <p class="qr-hint">QR-Code zum Einchecken</p>
+        {#if booking.qrCodeDataUrl}
+          <img src={booking.qrCodeDataUrl} alt="QR-Code fuer Check-in" width="160" height="160" style="border-radius:0.5rem;border:1px solid #e5e7eb;"/>
+        {:else}
+          <div class="qr-box"><div class="qr-inner">QR</div></div>
+        {/if}
+        <p class="qr-hint">QR-Code am Terminal scannen fuer schnellen Check-in</p>
       </div>
 
       <div class="confirmation-actions">
@@ -547,6 +555,10 @@
             <path d="M7 1v12M1 7h12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
           Weiteren Termin buchen
+        </a>
+        <a href="{API}/api/v1/appointments/{booking.bookingRef}/ical" download="termin.ics" class="btn" style="display:inline-flex;align-items:center;gap:0.375rem;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 1v3M10 1v3M1 6h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Kalender (.ics)
         </a>
         <a href="/status" class="btn">
           Termin verwalten

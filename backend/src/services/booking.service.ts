@@ -8,6 +8,7 @@
  * - Check-in and queue management
  */
 import { PrismaClient, AppointmentStatus, QueueStatus } from '@prisma/client';
+import { generateQrDataUrl } from './qrcode.service.js';
 
 const prisma = new PrismaClient();
 
@@ -184,6 +185,16 @@ export class BookingService {
         location: true,
       },
     });
+
+    // T2: QR-Code generieren und speichern
+    const qrCodeDataUrl = await generateQrDataUrl(bookingRef);
+    if (qrCodeDataUrl) {
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { qrCodeDataUrl },
+      });
+      appointment.qrCodeDataUrl = qrCodeDataUrl;
+    }
 
     return appointment;
   }
