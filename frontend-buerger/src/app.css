@@ -1,240 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* === AITEMA GOVTECH DESIGN SYSTEM === */
-
-/* 1. CSS Custom Properties (Design Tokens) */
 :root {
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  --font-family-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-  /* aitema Brand Colors */
-  --aitema-navy: #0f172a;
-  --aitema-blue: #1e3a5f;
-  --aitema-accent: #3b82f6;
-  --aitema-emerald: #059669;
-  --aitema-slate-50: #f8fafc;
-  --aitema-slate-100: #f1f5f9;
-  --aitema-slate-200: #e2e8f0;
-  --aitema-slate-300: #cbd5e1;
-  --aitema-slate-400: #94a3b8;
-  --aitema-muted: #64748b;
-  --aitema-red: #dc2626;
-
-  /* Semantic Colors (Light Mode) */
-  --bg-primary: var(--aitema-slate-50);
-  --bg-secondary: white;
-  --text-primary: var(--aitema-navy);
-  --text-secondary: var(--aitema-muted);
-  --border-color: var(--aitema-slate-200);
-  --accent-primary: var(--aitema-accent);
-  --accent-secondary: var(--aitema-emerald);
-  --interactive-bg-hover: var(--aitema-slate-100);
-
-  /* Spacing & Sizing */
-  --spacing-1: 0.25rem;
-  --spacing-2: 0.5rem;
-  --spacing-4: 1rem;
-  --spacing-6: 1.5rem;
-  --spacing-8: 2rem;
-  --header-height: 4.5rem;
-
-  /* Borders & Shadows */
-  --border-radius-btn: 0.375rem;
-  --border-radius-card: 0.5rem;
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 15px 0px rgba(59, 130, 246, 0.5);
+    --aitema-navy: #0f172a;
+    --aitema-accent: #3b82f6;
+    --aitema-emerald: #059669;
 }
 
-/* 2. Dark Mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Semantic Colors (Dark Mode) */
-    --bg-primary: var(--aitema-navy);
-    --bg-secondary: #1e293b; /* slate-800 */
-    --text-primary: var(--aitema-slate-50);
-    --text-secondary: var(--aitema-slate-400);
-    --border-color: #334155; /* slate-700 */
-    --interactive-bg-hover: #334155; /* slate-700 */
-  }
+@keyframes float {
+	0% {
+		transform: translatey(0px);
+	}
+	50% {
+		transform: translatey(-20px);
+	}
+	100% {
+		transform: translatey(0px);
+	}
 }
 
-/* 3. Base & Global Styles */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+@keyframes ping-slow {
+    75%, 100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  -moz-tab-size: 4;
-  tab-size: 4;
-  font-family: var(--font-family-sans);
-  line-height: 1.5;
-}
-
-body {
-  margin: 0;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-main {
-  display: block;
-}
-
-a {
-  color: inherit;
-  text-decoration: inherit;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  margin: 0;
-  font-weight: 600;
-}
-
-h1 { font-size: 2.25rem; line-height: 2.5rem; }
-h2 { font-size: 1.875rem; line-height: 2.25rem; }
-h3 { font-size: 1.5rem; line-height: 2rem; }
-
-/* 4. Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
+@keyframes stroke-draw {
   to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 15px 0px rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 25px 5px rgba(59, 130, 246, 0.6);
-  }
-}
-
-@keyframes checkmark-draw {
-  0% {
-    stroke-dashoffset: 50;
-  }
-  100% {
     stroke-dashoffset: 0;
   }
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-/* 5. Utility Classes (Tailwind-like) */
-/* Flexbox & Grid */
-.flex { display: flex; }
-.inline-flex { display: inline-flex; }
-.grid { display: grid; }
-.items-center { align-items: center; }
-.items-start { align-items: flex-start; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.flex-col { flex-direction: column; }
-.flex-wrap { flex-wrap: wrap; }
-.gap-2 { gap: var(--spacing-2); }
-.gap-4 { gap: var(--spacing-4); }
-.gap-6 { gap: var(--spacing-6); }
-.gap-8 { gap: var(--spacing-8); }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (min-width: 768px) {
-  .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-}
-
-/* Sizing */
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.min-h-screen { min-height: 100vh; }
-
-/* Spacing (Padding & Margin) */
-.p-2 { padding: var(--spacing-2); }
-.p-4 { padding: var(--spacing-4); }
-.p-6 { padding: var(--spacing-6); }
-.p-8 { padding: var(--spacing-8); }
-.py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
-.px-4 { padding-left: var(--spacing-4); padding-right: var(--spacing-4); }
-.m-auto { margin: auto; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-
-/* Typography */
-.text-sm { font-size: 0.875rem; }
-.text-base { font-size: 1rem; }
-.text-lg { font-size: 1.125rem; }
-.text-xl { font-size: 1.25rem; }
-.text-2xl { font-size: 1.5rem; }
-.font-bold { font-weight: 700; }
-.font-semibold { font-weight: 600; }
-.text-center { text-align: center; }
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-accent { color: var(--accent-primary); }
-.text-white { color: white; }
-
-/* Background & Borders */
-.bg-primary { background-color: var(--bg-primary); }
-.bg-secondary { background-color: var(--bg-secondary); }
-.bg-accent { background-color: var(--accent-primary); }
-.border { border: 1px solid var(--border-color); }
-.rounded-btn { border-radius: var(--border-radius-btn); }
-.rounded-card { border-radius: var(--border-radius-card); }
-.rounded-full { border-radius: 9999px; }
-.shadow-md { box-shadow: var(--shadow-md); }
-.shadow-lg { box-shadow: var(--shadow-lg); }
-
-/* Interaction */
-.cursor-pointer { cursor: pointer; }
-.transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-
-/* Accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Global Container */
-.container {
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-}
-@media (min-width: 640px) {
-  .container { max-width: 640px; }
-}
-@media (min-width: 768px) {
-  .container { max-width: 768px; }
-}
-@media (min-width: 1024px) {
-  .container { max-width: 1024px; }
-}
-@media (min-width: 1280px) {
-  .container { max-width: 1280px; }
 }

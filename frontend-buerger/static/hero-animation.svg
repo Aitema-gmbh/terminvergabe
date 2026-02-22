@@ -1,0 +1,88 @@
+<svg viewBox='0 0 800 450' xmlns='http://www.w3.org/2000/svg'>
+    <style>
+        .bg { fill: #f8fafc; }
+        .navy { fill: #0f172a; }
+        .accent { fill: #3b82f6; }
+        .emerald { fill: #059669; }
+        .white { fill: #ffffff; }
+        .font-sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .text-lg { font-size: 18px; }
+        .text-sm { font-size: 14px; }
+        .font-bold { font-weight: 700; }
+        .font-mono { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace; }
+
+        .laptop-screen { animation: screen-type 4s infinite; }
+        @keyframes screen-type {
+            0%, 20% { opacity: 0; }
+            30%, 70% { opacity: 1; }
+            80%, 100% { opacity: 0; }
+        }
+
+        .flow-arrow {
+            stroke-dasharray: 150;
+            stroke-dashoffset: 150;
+            animation: stroke-draw 4s infinite;
+            animation-delay: 1s;
+        }
+        @keyframes stroke-draw {
+            to { stroke-dashoffset: 0; }
+        }
+        
+        .calendar-check {
+            transform-origin: 50% 50%;
+            animation: grow-check 1s forwards;
+            animation-delay: 2s;
+            opacity: 0;
+        }
+        @keyframes grow-check {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+
+    <!-- Background -->
+    <rect class='bg' width='800' height='450'/>
+
+    <!-- Left side: Laptop -->
+    <g transform='translate(100, 150)'>
+        <rect class='navy' width='280' height='180' rx='10'/>
+        <rect class='white' x='10' y='10' width='260' height='160'/>
+        <rect class='navy' x='-20' y='180' width='320' height='10' rx='5'/>
+        <g class='laptop-screen'>
+            <rect class='accent' x='30' y='30' width='100' height='10'/>
+            <rect class='accent' x='30' y='50' width='140' height='10' opacity='0.8'/>
+            <rect class='accent' x='30' y='70' width='120' height='10' opacity='0.6'/>
+        </g>
+    </g>
+
+    <!-- Center: Flow Arrow -->
+    <g transform='translate(400, 225)'>
+        <path class='flow-arrow' stroke='#3b82f6' stroke-width='4' fill='none' d='M-50,0 C -10,0 10,0 50,0' marker-end='url(#arrowhead)'/>
+        <defs>
+            <marker id='arrowhead' markerWidth='10' markerHeight='7' refX='0' refY='3.5' orient='auto'>
+                <polygon points='0 0, 10 3.5, 0 7' fill='#3b82f6'/>
+            </marker>
+        </defs>
+    </g>
+
+    <!-- Right side: Calendar with Checkmark -->
+    <g transform='translate(550, 160)'>
+        <rect class='navy' width='150' height='130' rx='8'/>
+        <rect class='accent' width='150' height='30' rx='8' ry='8'/>
+        <text class='white font-sans font-bold' x='75' y='22' text-anchor='middle'>Termin</text>
+        <rect class='white' x='10' y='40' width='130' height='80'/>
+        <g class='calendar-check'>
+            <circle class='emerald' cx='75' cy='85' r='30'/>
+            <path stroke='#ffffff' stroke-width='6' stroke-linecap='round' d='M60 85 l10 10 l20 -20'/>
+        </g>
+    </g>
+
+    <!-- Open Source Badge -->
+    <g transform='translate(20, 20)'>
+        <rect class='emerald' width='140' height='30' rx='15'/>
+        <g class='white' transform='translate(10, 7) scale(0.8)'>
+            <path stroke='currentColor' stroke-width='2' d='M5 10 l5 -5 l5 5 M10 5 v10'/>
+        </g>
+        <text class='white font-sans text-sm font-bold' x='35' y='20'>Open Source</text>
+    </g>
+</svg>
