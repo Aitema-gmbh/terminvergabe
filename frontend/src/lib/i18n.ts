@@ -328,7 +328,7 @@ const subscribers: Set<LocaleChangeCallback> = new Set();
 /** Initialise locale from storage or browser preference. */
 export function initLocale(): Locale {
   // 1. Check localStorage
-  if (typeof window \!== "undefined") {
+  if (typeof window !== "undefined") {
     const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
     if (stored && SUPPORTED_LOCALES.includes(stored)) {
       currentLocale = stored;
@@ -367,12 +367,12 @@ export function getSupportedLocales(): Array<{ code: Locale; name: string }> {
 
 /** Change the active locale. */
 export function setLocale(locale: Locale): void {
-  if (\!SUPPORTED_LOCALES.includes(locale)) {
+  if (!SUPPORTED_LOCALES.includes(locale)) {
     console.warn(`[i18n] Unsupported locale: ${locale}`);
     return;
   }
   currentLocale = locale;
-  if (typeof window \!== "undefined") {
+  if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, locale);
   }
   applyLocale(locale);
@@ -389,7 +389,7 @@ export function t(key: TranslationKey): string {
   if (fallback) return fallback;
 
   // Development warning
-  if (typeof process \!== "undefined" && process.env?.NODE_ENV \!== "production") {
+  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
     console.warn(`[i18n] Missing translation: ${key} (${currentLocale})`);
   }
   return key;

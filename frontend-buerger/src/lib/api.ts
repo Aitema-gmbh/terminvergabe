@@ -26,7 +26,7 @@ async function request<T>(
     },
   });
 
-  if (\!response.ok) {
+  if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Netzwerkfehler" }));
     throw new Error(error.message || `HTTP ${response.status}`);
   }
@@ -174,7 +174,7 @@ export function connectQueueWebSocket(
   locationId: string,
   type: "queue" | "display" = "queue"
 ): WebSocket | null {
-  if (\!browser) return null;
+  if (!browser) return null;
 
   const url = `${WS_URL}/api/v1/${tenantSlug}/queue/ws?locationId=${locationId}&type=${type}`;
   return new WebSocket(url);

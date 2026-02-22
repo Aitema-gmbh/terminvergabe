@@ -351,15 +351,15 @@
               <strong>Browser-Benachrichtigungen (Push)</strong>
               {#if pushSubscribed}
                 <span style="color:var(--aitema-emerald);font-weight:600">Aktiv auf diesem Geraet</span>
-              {:else if .status === 'unsupported'}
+              {:else if $pushStore.status === 'unsupported'}
                 <span style="color:var(--aitema-muted)">Von diesem Browser nicht unterstuetzt</span>
-              {:else if .status === 'denied'}
+              {:else if $pushStore.status === 'denied'}
                 <span style="color:var(--aitema-muted)">Berechtigung verweigert (Browser-Einstellungen)</span>
               {:else}
                 <span>Echtzeit-Updates direkt im Browser</span>
               {/if}
             </div>
-            {#if .status !== 'unsupported' && .status !== 'denied'}
+            {#if $pushStore.status !== 'unsupported' && $pushStore.status !== 'denied'}
               <button
                 class="btn btn-sm" class:btn-primary={!pushSubscribed} class:btn-secondary={pushSubscribed}
                 onclick={handlePushToggle}
