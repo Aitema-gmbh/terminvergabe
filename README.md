@@ -17,6 +17,14 @@
 
 ---
 
+
+## Screenshots
+
+| Landing Page | Termin buchen | Wartenummer |
+|:---:|:---:|:---:|
+| ![Landing](docs/screenshots/termin-landing.png) | ![Buchen](docs/screenshots/termin-buchen.png) | ![Wartenummer](docs/screenshots/termin-wartenummer.png) |
+
+
 ## Was ist aitema|Termin?
 
 aitema|Termin ist ein vollständiges **Online-Terminvergabesystem** für Bürgerämter, Ausländerbehörden, KFZ-Zulassungsstellen und andere kommunale Dienststellen. Bürgerinnen und Bürger buchen Termine online — oder ziehen vor Ort eine digitale Wartenummer.
@@ -200,3 +208,4 @@ Entwickelt von [aitema GmbH](https://aitema.de) · AI Innovation for Public Sect
 *GovTech aus Deutschland — für Deutschland.*
 
 </div>
+
