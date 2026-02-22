@@ -170,10 +170,10 @@
   <title>{t("nav.book")} - aitema|Termin</title>
 </svelte:head>
 
-<main class="booking-page">
+<main id="main-content" class="booking-page">
 
   <!-- BOOKING PROGRESS BAR -->
-  <div class="booking-progress" aria-label="Buchungsschritte">
+  <div class="booking-progress" role="progressbar" aria-label="Buchungsschritte" aria-valuenow={step} aria-valuemin={1} aria-valuemax={6}>
     {#each [
       {n:1, label:'Dienst'},
       {n:2, label:'Datum'},
@@ -204,14 +204,14 @@
   </div>
 
   {#if error}
-    <div class="alert alert-error" role="alert" style="margin: 1rem 1.5rem;">
+    <div class="alert alert-error" role="alert" aria-live="assertive" style="margin: 1rem 1.5rem;">
       <span class="alert-icon">&#9888;</span>
       <span style="flex:1">{error}</span>
       <button onclick={() => (error = "")} style="background:none;border:none;cursor:pointer;font-size:1.25rem;color:inherit;" aria-label="Schliessen">&times;</button>
     </div>
   {/if}
 
-  <div class="booking-content">
+  <div class="booking-content" aria-live="polite" aria-atomic="false">
 
     {#if loading}
       <div class="loading-state">

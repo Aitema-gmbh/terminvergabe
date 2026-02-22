@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
 </svelte:head>
 
-<main class="landing">
+<main id="main-content" class="landing">
 
   <!-- HERO -->
   <header class="hero">
