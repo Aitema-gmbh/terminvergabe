@@ -34,6 +34,20 @@ async function request<T>(
   return response.json();
 }
 
+// === NEW Interfaces ===
+export interface Service {
+  id: string;
+  name: string;
+  duration: number;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+}
+
+
 // === Booking API ===
 
 export interface TimeSlot {
@@ -66,6 +80,16 @@ export interface ServiceInfo {
   fee?: number;
   category?: { name: string };
 }
+
+// === NEW Functions ===
+export function getServices(tenantSlug: string) {
+  return request<Service[]>(`/api/v1/${tenantSlug}/booking/services`);
+}
+
+export function getLocations(tenantSlug: string) {
+  return request<Location[]>(`/api/v1/${tenantSlug}/booking/locations`);
+}
+
 
 export function getAvailableDays(
   tenantSlug: string,

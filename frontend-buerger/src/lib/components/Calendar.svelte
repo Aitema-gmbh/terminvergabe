@@ -1,211 +1,97 @@
+
 <script lang="ts">
-  import { addMonths, format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from "date-fns";
-  import { de } from "date-fns/locale";
+	import {
+		eachDayOfInterval,
+		endOfMonth,
+		endOfWeek,
+		format,
+		isSameDay,
+		isSameMonth,
+		isToday,
+		startOfWeek
+	} from 'date-fns';
+	import { de } from 'date-fns/locale';
+	import Button from '$components/Button.svelte';
 
-  interface AvailableDay {
-    date: string;
-    availableSlots: number;
-  }
+	type $$Props = {
+		selectedDate?: Date;
+		month?: number;
+		year?: number;
+	};
 
-  interface Props {
-    availableDays: AvailableDay[];
-    onSelect: (date: string) => void;
-  }
+	let {
+		selectedDate = $bindable(new Date()),
+		month = $bindable(new Date().getMonth()),
+		year = $bindable(new Date().getFullYear())
+	} = $props();
 
-  let { availableDays, onSelect }: Props = $props();
+	const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-  let currentMonth = $state(new Date());
+	let days = $derived.by(() => {
+		const firstDayOfMonth = new Date(year, month, 1);
+		const lastDayOfMonth = endOfMonth(firstDayOfMonth);
+		return eachDayOfInterval({
+			start: startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }),
+			end: endOfWeek(lastDayOfMonth, { weekStartsOn: 1 })
+		});
+	});
 
-  const weekDays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+	function prevMonth() {
+		if (month === 0) {
+			month = 11;
+			year--;
+		} else {
+			month--;
+		}
+	}
 
-  function getDays() {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    const days = eachDayOfInterval({ start, end });
+	function nextMonth() {
+		if (month === 11) {
+			month = 0;
+			year++;
+		} else {
+			month++;
+		}
+	}
 
-    // Pad start to align with Monday
-    const startDay = getDay(start);
-    const padding = startDay === 0 ? 6 : startDay - 1;
-
-    return { days, padding };
-  }
-
-  function isAvailable(date: Date): boolean {
-    const dateStr = format(date, "yyyy-MM-dd");
-    return availableDays.some((d) => d.date === dateStr);
-  }
-
-  function getSlotsCount(date: Date): number {
-    const dateStr = format(date, "yyyy-MM-dd");
-    return availableDays.find((d) => d.date === dateStr)?.availableSlots ?? 0;
-  }
-
-  function selectDate(date: Date) {
-    if (isAvailable(date)) {
-      onSelect(format(date, "yyyy-MM-dd"));
-    }
-  }
-
-  function prevMonth() {
-    currentMonth = addMonths(currentMonth, -1);
-  }
-
-  function nextMonth() {
-    currentMonth = addMonths(currentMonth, 1);
-  }
-
-  let calendarData = $derived(getDays());
+	function isSelected(day: Date) {
+		return selectedDate && isSameDay(day, selectedDate);
+	}
 </script>
 
-<div class="calendar" role="grid" aria-label="Kalender">
-  <div class="calendar-header">
-    <button class="nav-btn" onclick={prevMonth} aria-label="Vorheriger Monat">&laquo;</button>
-    <h3>{format(currentMonth, "MMMM yyyy", { locale: de })}</h3>
-    <button class="nav-btn" onclick={nextMonth} aria-label="Naechster Monat">&raquo;</button>
-  </div>
+<div class="bg-secondary p-4 rounded-card border shadow-md">
+	<div class="flex items-center justify-between mb-4">
+		<Button variant="ghost" class="p-2" onclick={prevMonth} aria-label="Vorheriger Monat">
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+		</Button>
+		<div class="font-bold text-lg text-primary capitalize">
+			{format(new Date(year, month), 'MMMM yyyy', { locale: de })}
+		</div>
+		<Button variant="ghost" class="p-2" onclick={nextMonth} aria-label="Nächster Monat">
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+		</Button>
+	</div>
 
-  <div class="weekdays" role="row">
-    {#each weekDays as day}
-      <div class="weekday" role="columnheader">{day}</div>
-    {/each}
-  </div>
+	<div class="grid grid-cols-7 gap-1 text-center text-sm text-secondary">
+		{#each weekdays as weekday}
+			<div class="font-semibold">{weekday}</div>
+		{/each}
+	</div>
 
-  <div class="days">
-    {#each Array(calendarData.padding) as _}
-      <div class="day empty"></div>
-    {/each}
-    {#each calendarData.days as date}
-      {@const available = isAvailable(date)}
-      {@const slots = getSlotsCount(date)}
-      <button
-        class="day"
-        class:available
-        class:today={isSameDay(date, new Date())}
-        onclick={() => selectDate(date)}
-        disabled={!available}
-        aria-label="{format(date, 'd. MMMM', { locale: de })}{available ? `, ${slots} Termine verfuegbar` : ', nicht verfuegbar'}"
-        role="gridcell"
-      >
-        <span class="day-number">{format(date, "d")}</span>
-        {#if available}
-          <span class="slots-badge">{slots}</span>
-        {/if}
-      </button>
-    {/each}
-  </div>
+	<div class="grid grid-cols-7 gap-1 mt-2">
+		{#each days as day}
+			{@const isCurrentMonth = isSameMonth(day, new Date(year, month))}
+			<button
+				onclick={() => selectedDate = day}
+				class="relative flex items-center justify-center h-10 w-10 rounded-full transition-colors
+          {isCurrentMonth ? 'text-primary' : 'text-secondary'}
+          {isToday(day) && !isSelected(day) ? 'border border-accent-primary' : ''}
+          {isSelected(day) ? 'bg-accent-primary text-white' : 'hover:bg-interactive-bg-hover'}
+        "
+				aria-label={format(day, 'd. MMMM yyyy')}
+			>
+				{format(day, 'd')}
+			</button>
+		{/each}
+	</div>
 </div>
-
-<style>
-  .calendar {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 1rem;
-    max-width: 450px;
-    margin: 0 auto;
-  }
-
-  .calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .calendar-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    color: #003366;
-    text-transform: capitalize;
-  }
-
-  .nav-btn {
-    background: none;
-    border: 2px solid #003366;
-    border-radius: 6px;
-    color: #003366;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    font-size: 1.125rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-btn:hover { background: #f0f4f8; }
-  .nav-btn:focus-visible { outline: 3px solid #ff9900; outline-offset: 2px; }
-
-  .weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    margin-bottom: 4px;
-  }
-
-  .weekday {
-    text-align: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #666;
-    padding: 0.25rem;
-  }
-
-  .days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-  }
-
-  .day {
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    background: none;
-    cursor: default;
-    font-size: 0.875rem;
-    padding: 2px;
-    min-height: 44px;
-  }
-
-  .day.empty { visibility: hidden; }
-
-  .day.available {
-    background: #e8f5e9;
-    border-color: #4caf50;
-    cursor: pointer;
-  }
-
-  .day.available:hover {
-    background: #c8e6c9;
-    transform: scale(1.05);
-  }
-
-  .day.available:focus-visible {
-    outline: 3px solid #ff9900;
-    outline-offset: 2px;
-  }
-
-  .day.today {
-    font-weight: 700;
-  }
-
-  .day:disabled:not(.empty) {
-    color: #ccc;
-  }
-
-  .day-number { line-height: 1; }
-
-  .slots-badge {
-    font-size: 0.625rem;
-    background: #4caf50;
-    color: white;
-    border-radius: 10px;
-    padding: 1px 5px;
-    margin-top: 1px;
-  }
-</style>

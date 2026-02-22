@@ -1,66 +1,41 @@
+
 <script lang="ts">
-  interface Option {
-    value: string;
-    label: string;
-  }
+	import type { Snippet } from 'svelte';
 
-  interface Props {
-    id?: string;
-    options: Option[];
-    value: string;
-    label?: string;
-    placeholder?: string;
-    required?: boolean;
-    onchange?: (value: string) => void;
-  }
-
-  let { id, options, value = $bindable(), label, placeholder = "Bitte waehlen...", required = false, onchange }: Props = $props();
-
-  function handleChange(e: Event) {
-    const target = e.target as HTMLSelectElement;
-    value = target.value;
-    onchange?.(value);
-  }
+	type $$Props = {
+		class?: string;
+		value?: string | number | boolean;
+		children: Snippet;
+		[x: string]: any;
+	};
+	let {
+		class: className = '',
+		value = $bindable(),
+		children,
+		...rest
+	} = $props();
 </script>
 
-<div class="select-wrapper">
-  {#if label}
-    <label for={id}>{label}{required ? " *" : ""}</label>
-  {/if}
-  <select {id} {value} {required} onchange={handleChange} aria-required={required}>
-    <option value="" disabled>{placeholder}</option>
-    {#each options as opt}
-      <option value={opt.value}>{opt.label}</option>
-    {/each}
-  </select>
+<div class="relative">
+	<select
+		class="w-full appearance-none bg-secondary border border-border-color rounded-btn px-4 py-2 pr-8 text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary {className}"
+		bind:value
+		{...rest}
+	>
+		{@render children()}
+	</select>
+	<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-primary">
+		<svg
+			class="h-4 w-4"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 20 20"
+			fill="currentColor"
+		>
+			<path
+				fill-rule="evenodd"
+				d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+				clip-rule="evenodd"
+			/>
+		</svg>
+	</div>
 </div>
-
-<style>
-  .select-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  label {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #333;
-  }
-
-  select {
-    padding: 0.625rem;
-    border: 2px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    background: white;
-    min-height: 44px;
-    cursor: pointer;
-  }
-
-  select:focus {
-    outline: none;
-    border-color: #003366;
-    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.2);
-  }
-</style>

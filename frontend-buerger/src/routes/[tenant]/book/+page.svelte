@@ -1,532 +1,325 @@
+
 <script lang="ts">
-  import { page } from "$app/stores";
-  import { onMount } from "svelte";
-  import { t } from "$lib/i18n/index.js";
-  import {
-    getAvailableDays,
-    getAvailableSlots,
-    createBooking,
-    type TimeSlot,
-    type AvailableDay,
-    type BookingResult,
-  } from "$lib/api.js";
-  import {
-    pushStore,
-    subscribePush,
-    unsubscribePush,
-    registerServiceWorker,
-  } from "$lib/push.js";
-  import Calendar from "$lib/components/Calendar.svelte";
-  import TimeSlotPicker from "$lib/components/TimeSlotPicker.svelte";
-  import Button from "$lib/components/Button.svelte";
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import {
+		getAvailableDays,
+		getAvailableSlots,
+		createBooking,
+		type TimeSlot,
+		type AvailableDay,
+		type BookingResult,
+    type Service,
+    type Location,
+    getServices,
+    getLocations
+	} from '$lib/api';
+  import { pushStore, subscribePush, unsubscribePush, registerServiceWorker } from '$lib/push';
+	import Button from '$lib/components/Button.svelte';
+	import Calendar from '$lib/components/Calendar.svelte';
+	import TimeSlotPicker from '$lib/components/TimeSlotPicker.svelte';
 
-  const tenant = $page.params.tenant;
+  // Wizard state
+	let currentStep = $state(1);
+	const totalSteps = 4;
 
-  // ── Schritte: 1 Dienst | 2 Datum | 3 Uhrzeit | 4 Daten | 5 Benachrichtigungen | 6 Fertig ──
-  let step = $state(1);
-  let serviceId = $state("");
-  let locationId = $state("");
-  let selectedDate = $state("");
-  let selectedSlot = $state<TimeSlot | null>(null);
-  let availableDays = $state<AvailableDay[]>([]);
-  let availableSlots = $state<TimeSlot[]>([]);
-  let loading = $state(false);
-  let error = $state("");
-  let bookingResult = $state<BookingResult | null>(null);
+	// Data state
+	let services = $state<Service[]>([]);
+	let locations = $state<Location[]>([]);
+	let availableDays = $state<AvailableDay[]>([]);
+	let availableSlots = $state<TimeSlot[]>([]);
+	let bookingResult = $state<BookingResult | null>(null);
 
-  // Persoenliche Daten
-  let citizenName = $state("");
-  let citizenEmail = $state("");
-  let citizenPhone = $state("");
-  let notes = $state("");
+	// Selection state
+	let selectedService = $state<Service | null>(null);
+	let selectedLocation = $state<Location | null>(null);
+	let selectedDate = $state(new Date());
+	let selectedSlot = $state('');
 
-  // Opt-in Benachrichtigungen
-  let smsOptIn = $state(false);
-  let pushOptIn = $state(false);
-  let emailOptIn = $state(true); // E-Mail standardmaessig aktiv
-  let notifLoading = $state(false);
-  let pushSubscribed = $state(false);
+	// Form state
+	let citizenName = $state('');
+	let citizenEmail = $state('');
+	let citizenPhone = $state('');
+	let notes = $state('');
+  let formErrors = $state({ name: '', email: '' });
 
-  // Push-Store beobachten
-  $effect(() => {
-    pushSubscribed = $pushStore.status === "subscribed";
-  });
+	// UI state
+	let loading = $state(false);
+	let error = $state('');
 
-  onMount(async () => {
-    const params = new URLSearchParams(window.location.search);
-    serviceId = params.get("serviceId") || "";
-    locationId = params.get("locationId") || "";
-    if (serviceId && locationId) {
-      loadAvailableDays();
-    }
-    // SW vorregistrieren, damit Subscription schneller klappt
-    await registerServiceWorker();
-  });
+	const tenant = $page.params.tenant;
 
-  async function loadAvailableDays() {
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    loading = true;
-    error = "";
-    try {
-      const res = await getAvailableDays(tenant, serviceId, locationId, month);
-      availableDays = res.data;
-      step = 2;
-    } catch (e: any) {
-      error = e.message;
-    } finally {
-      loading = false;
-    }
+	onMount(async () => {
+		loading = true;
+		try {
+			const [servicesRes, locationsRes] = await Promise.all([
+				getServices(tenant),
+				getLocations(tenant)
+			]);
+			services = servicesRes.data;
+			locations = locationsRes.data;
+		} catch (e: any) {
+			error = 'Dienste und Standorte konnten nicht geladen werden.';
+		} finally {
+			loading = false;
+		}
+	});
+
+  async function selectService(service: Service) {
+    selectedService = service;
+    currentStep = 2;
   }
 
-  async function onDateSelected(date: string) {
-    selectedDate = date;
-    loading = true;
-    error = "";
-    try {
-      const res = await getAvailableSlots(tenant, serviceId, locationId, date);
-      availableSlots = res.data;
-      step = 3;
-    } catch (e: any) {
-      error = e.message;
-    } finally {
-      loading = false;
+	async function selectLocation(location: Location) {
+		selectedLocation = location;
+		loading = true;
+		error = '';
+		try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+			const res = await getAvailableDays(tenant, selectedService!.id, selectedLocation!.id, month);
+			availableDays = res.data;
+			currentStep = 3;
+		} catch (e: any) {
+			error = 'Verfügbare Tage konnten nicht geladen werden.';
+		} finally {
+			loading = false;
+		}
+	}
+
+	$effect(() => {
+		async function loadSlots() {
+			if (currentStep !== 3 || !selectedDate || !selectedService || !selectedLocation) return;
+			loading = true;
+			error = '';
+			try {
+        const dateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+				const res = await getAvailableSlots(tenant, selectedService.id, selectedLocation.id, dateString);
+				availableSlots = res.data;
+        selectedSlot = '';
+			} catch (e: any) {
+				error = 'Verfügbare Uhrzeiten konnten nicht geladen werden.';
+			} finally {
+				loading = false;
+			}
+		}
+		loadSlots();
+	});
+
+  function validateForm() {
+    formErrors = { name: '', email: '' };
+    let isValid = true;
+    if (citizenName.trim().length < 2) {
+      formErrors.name = 'Name ist erforderlich.';
+      isValid = false;
     }
+    if (citizenEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(citizenEmail)) {
+      formErrors.email = 'Geben Sie eine gültige E-Mail-Adresse ein.';
+      isValid = false;
+    }
+    return isValid;
   }
 
-  function onSlotSelected(slot: TimeSlot) {
-    selectedSlot = slot;
-    step = 4;
-  }
+	async function submitBooking() {
+		if (!validateForm() || !selectedSlot) return;
 
-  async function submitBooking() {
-    if (!selectedSlot || !citizenName) return;
-    loading = true;
-    error = "";
-    try {
-      const res = await createBooking(tenant, {
-        serviceId,
-        locationId,
-        slotStart: selectedSlot.startTime,
-        citizenName,
-        citizenEmail: citizenEmail || undefined,
-        citizenPhone: citizenPhone || undefined,
-        notes: notes || undefined,
-      });
-      bookingResult = res.data;
-      // Weiter zu Benachrichtigungs-Schritt
-      step = 5;
-    } catch (e: any) {
-      error = e.message;
-    } finally {
-      loading = false;
-    }
-  }
+		loading = true;
+		error = '';
+		try {
+			const res = await createBooking(tenant, {
+				serviceId: selectedService!.id,
+				locationId: selectedLocation!.id,
+				slotStart: selectedSlot,
+				citizenName,
+				citizenEmail: citizenEmail || undefined,
+				citizenPhone: citizenPhone || undefined,
+				notes: notes || undefined
+			});
+			bookingResult = res.data;
+			currentStep = 5; // Confirmation step
+		} catch (e: any) {
+			error = 'Ihre Buchung konnte nicht erstellt werden. Bitte versuchen Sie es erneut.';
+		} finally {
+			loading = false;
+		}
+	}
 
-  async function handlePushToggle() {
-    if (!bookingResult) return;
-    notifLoading = true;
-    try {
-      if (!pushSubscribed) {
-        const ok = await subscribePush(bookingResult.bookingCode, "/api");
-        if (ok) pushOptIn = true;
-      } else {
-        await unsubscribePush("/api");
-        pushOptIn = false;
-      }
-    } finally {
-      notifLoading = false;
-    }
-  }
+	function nextStep() {
+		if (currentStep < totalSteps) {
+			currentStep++;
+		}
+	}
 
-  async function savePreferencesAndFinish() {
-    if (!bookingResult) { step = 6; return; }
-    notifLoading = true;
-    try {
-      await fetch(`/api/notifications/preferences/${bookingResult.bookingCode}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          smsOptIn,
-          pushOptIn,
-          emailOptIn,
-          reminderChannels: [
-            ...(emailOptIn ? ["email"] : []),
-            ...(smsOptIn ? ["sms"] : []),
-            ...(pushOptIn ? ["push"] : []),
-          ],
-        }),
-      });
-    } catch {
-      // Nicht-kritisch: Praeferenzen koennen spaeter noch geaendert werden
-    } finally {
-      notifLoading = false;
-      step = 6;
-    }
-  }
+	function prevStep() {
+		if (currentStep > 1) {
+			currentStep--;
+      error = '';
+		}
+	}
+
+  const steps = [
+    { num: 1, label: 'Dienstleistung' },
+    { num: 2, label: 'Standort' },
+    { num: 3, label: 'Datum & Zeit' },
+    { num: 4, label: 'Ihre Daten' }
+  ];
 </script>
 
 <svelte:head>
-  <title>{t("nav.book")} - aitema|Termin</title>
+	<title>Termin buchen - aitema GovTech</title>
 </svelte:head>
 
-<main id="main-content" class="booking-page">
+<div class="container mx-auto max-w-4xl py-8 px-4">
 
-  <!-- BOOKING PROGRESS BAR -->
-  <div class="booking-progress" role="progressbar" aria-label="Buchungsschritte" aria-valuenow={step} aria-valuemin={1} aria-valuemax={6}>
-    {#each [
-      {n:1, label:'Dienst'},
-      {n:2, label:'Datum'},
-      {n:3, label:'Uhrzeit'},
-      {n:4, label:'Daten'},
-      {n:5, label:'Info'},
-      {n:6, label:'Fertig'}
-    ] as s, i}
-      <div class="progress-step">
-        <div class="progress-step-inner">
-          {#if i > 0}
-            <div class="progress-line" class:done={step > s.n}></div>
-          {/if}
-          <div
-            class="progress-circle"
-            class:active={step === s.n}
-            class:done={step > s.n}
-            aria-current={step === s.n ? 'step' : undefined}
+	<!-- Progress Bar -->
+	<div class="mb-12">
+    <div class="flex items-center">
+      {#each steps as step, i}
+        <div class="flex items-center {i < steps.length - 1 ? 'w-full' : ''}">
+          <div class="flex items-center justify-center w-10 h-10 rounded-full transition-all
+            {currentStep > step.num ? 'bg-emerald-500 text-white' : ''}
+            {currentStep === step.num ? 'bg-accent-primary text-white scale-110' : ''}
+            {currentStep < step.num ? 'bg-secondary border-2 border-border-color' : ''}"
           >
-            <span>{s.n}</span>
+            {#if currentStep > step.num}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            {:else}
+              <span class="font-bold">{step.num}</span>
+            {/if}
           </div>
+          <p class="ml-4 font-semibold hidden md:block {currentStep === step.num ? 'text-accent-primary' : 'text-secondary'}">{step.label}</p>
         </div>
-        <div class="progress-label" class:active={step === s.n} class:done={step > s.n}>
-          {s.label}
-        </div>
-      </div>
-    {/each}
-  </div>
-
-  {#if error}
-    <div class="alert alert-error" role="alert" aria-live="assertive" style="margin: 1rem 1.5rem;">
-      <span class="alert-icon">&#9888;</span>
-      <span style="flex:1">{error}</span>
-      <button onclick={() => (error = "")} style="background:none;border:none;cursor:pointer;font-size:1.25rem;color:inherit;" aria-label="Schliessen">&times;</button>
+        {#if i < steps.length - 1}
+          <div class="flex-auto border-t-2 transition-all duration-500 {currentStep > step.num ? 'border-emerald-500' : 'border-border-color'}"></div>
+        {/if}
+      {/each}
     </div>
-  {/if}
-
-  <div class="booking-content" aria-live="polite" aria-atomic="false">
-
-    {#if loading}
-      <div class="loading-state">
-        <div class="spinner" aria-hidden="true"></div>
-        <p style="color: var(--aitema-muted);">{t("common.loading")}</p>
-      </div>
-
-    {:else if step === 2}
-      <section aria-label={t("booking.selectDate")}>
-        <h2 class="step-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          {t("booking.selectDate")}
-        </h2>
-        <Calendar {availableDays} onSelect={onDateSelected} />
-      </section>
-
-    {:else if step === 3}
-      <section aria-label={t("booking.selectTime")}>
-        <h2 class="step-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-          {t("booking.selectTime")}
-          <span class="step-date-badge">{selectedDate}</span>
-        </h2>
-        {#if availableSlots.length === 0}
-          <div class="alert alert-warning">
-            <span class="alert-icon">&#8505;</span>
-            <span>{t("booking.noSlots")}</span>
-          </div>
-        {:else}
-          <TimeSlotPicker slots={availableSlots} onSelect={onSlotSelected} />
-        {/if}
-        <div class="step-nav">
-          <button class="btn btn-secondary" onclick={() => (step = 2)}>{t("common.back")}</button>
-        </div>
-      </section>
-
-    {:else if step === 4}
-      <section aria-label={t("booking.enterDetails")}>
-        <h2 class="step-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          {t("booking.enterDetails")}
-        </h2>
-        <form onsubmit={(e) => { e.preventDefault(); submitBooking(); }} class="booking-form">
-          <div class="form-group">
-            <label class="form-label" for="name">{t("booking.name")} <span class="required">*</span></label>
-            <input id="name" type="text" bind:value={citizenName} required minlength="2" class="form-input" placeholder="Max Mustermann" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="email">{t("booking.email")}</label>
-            <input id="email" type="email" bind:value={citizenEmail} class="form-input" placeholder="max@beispiel.de" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="phone">
-              {t("booking.phone")}
-              {#if citizenPhone}<span class="form-hint" style="font-weight:400"> (fuer SMS-Erinnerungen)</span>{/if}
-            </label>
-            <input id="phone" type="tel" bind:value={citizenPhone} class="form-input" placeholder="+49 ..." />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="notes">{t("booking.notes")}</label>
-            <textarea id="notes" bind:value={notes} rows="3" class="form-input form-textarea"></textarea>
-          </div>
-          <div class="step-nav">
-            <button type="button" class="btn btn-secondary" onclick={() => (step = 3)}>{t("common.back")}</button>
-            <button type="submit" class="btn btn-primary">{t("booking.submit")}</button>
-          </div>
-        </form>
-      </section>
-
-    {:else if step === 5 && bookingResult}
-      <section class="notif-step" aria-label="Benachrichtigungseinstellungen">
-        <h2 class="step-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Benachrichtigungen
-        </h2>
-        <p class="step-intro">
-          Moechten Sie an Ihren Termin erinnert werden?
-          Alle Kanaele sind freiwillig und koennen jederzeit widerrufen werden.
-        </p>
-
-        <!-- E-Mail -->
-        {#if citizenEmail}
-          <div class="notif-card" class:active={emailOptIn}>
-            <div class="notif-card-header">
-              <span class="notif-icon" aria-hidden="true">&#9993;</span>
-              <div class="notif-info">
-                <strong>E-Mail-Erinnerung</strong>
-                <span>{citizenEmail}</span>
-              </div>
-              <label class="toggle" aria-label="E-Mail-Erinnerung aktivieren">
-                <input type="checkbox" bind:checked={emailOptIn} />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            {#if emailOptIn}
-              <p class="notif-detail">24 Stunden vor Ihrem Termin erhalten Sie eine Erinnerung per E-Mail.</p>
-            {/if}
-          </div>
-        {/if}
-
-        <!-- SMS -->
-        {#if citizenPhone}
-          <div class="notif-card" class:active={smsOptIn}>
-            <div class="notif-card-header">
-              <span class="notif-icon" aria-hidden="true">&#128241;</span>
-              <div class="notif-info">
-                <strong>SMS-Erinnerung</strong>
-                <span>{citizenPhone}</span>
-              </div>
-              <label class="toggle" aria-label="SMS-Erinnerung aktivieren">
-                <input type="checkbox" bind:checked={smsOptIn} />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            {#if smsOptIn}
-              <p class="notif-detail">Sie erhalten eine SMS 24h vor Ihrem Termin sowie ein Update, wenn Sie an der Reihe sind.</p>
-              <p class="notif-legal">Durch Aktivierung stimmen Sie der Verarbeitung Ihrer Mobilnummer gemaess DSGVO Art. 6 Abs. 1a zu. Widerruf jederzeit moeglich.</p>
-            {/if}
-          </div>
-        {:else}
-          <div class="notif-card" style="opacity:0.5;pointer-events:none">
-            <div class="notif-card-header">
-              <span class="notif-icon" aria-hidden="true">&#128241;</span>
-              <div class="notif-info">
-                <strong>SMS-Erinnerung</strong>
-                <span style="color:var(--aitema-muted)">Keine Telefonnummer angegeben</span>
-              </div>
-            </div>
-          </div>
-        {/if}
-
-        <!-- Push -->
-        <div class="notif-card" class:active={pushSubscribed}>
-          <div class="notif-card-header">
-            <span class="notif-icon" aria-hidden="true">&#128276;</span>
-            <div class="notif-info">
-              <strong>Browser-Benachrichtigungen (Push)</strong>
-              {#if pushSubscribed}
-                <span style="color:var(--aitema-emerald);font-weight:600">Aktiv auf diesem Geraet</span>
-              {:else if $pushStore.status === 'unsupported'}
-                <span style="color:var(--aitema-muted)">Von diesem Browser nicht unterstuetzt</span>
-              {:else if $pushStore.status === 'denied'}
-                <span style="color:var(--aitema-muted)">Berechtigung verweigert (Browser-Einstellungen)</span>
-              {:else}
-                <span>Echtzeit-Updates direkt im Browser</span>
-              {/if}
-            </div>
-            {#if $pushStore.status !== 'unsupported' && $pushStore.status !== 'denied'}
-              <button
-                class="btn btn-sm" class:btn-primary={!pushSubscribed} class:btn-secondary={pushSubscribed}
-                onclick={handlePushToggle}
-                disabled={notifLoading}
-                aria-label={pushSubscribed ? 'Push deaktivieren' : 'Push aktivieren'}
-              >
-                {#if notifLoading}
-                  <span class="spinner spinner-sm" aria-hidden="true"></span>
-                {:else if pushSubscribed}
-                  Deaktivieren
-                {:else}
-                  Aktivieren
-                {/if}
-              </button>
-            {/if}
-          </div>
-          {#if pushSubscribed}
-            <p class="notif-detail">Sie erhalten Echtzeit-Updates zur Warteschlange und eine Erinnerung 1 Stunde vor Ihrem Termin.</p>
-          {/if}
-        </div>
-
-        <div class="step-nav">
-          <button class="btn btn-secondary" onclick={() => (step = 4)}>Zurueck</button>
-          <button class="btn btn-primary" onclick={savePreferencesAndFinish} disabled={notifLoading}>
-            {notifLoading ? 'Speichere...' : 'Abschliessen'}
-          </button>
-        </div>
-      </section>
-
-    {:else if step === 6 && bookingResult}
-      <section class="success-section animate-fade-in" aria-label={t("booking.success")}>
-        <div class="confirmation-box">
-          <div class="confirmation-icon" aria-hidden="true">&#10003;</div>
-          <h2 style="color: #166534; margin-bottom: 0.5rem;">{t("booking.success")}</h2>
-          <p style="color: #166534; margin-bottom: 1.5rem;">Ihre Buchung wurde erfolgreich abgesendet.</p>
-          <div class="confirmation-number">{bookingResult.bookingCode}</div>
-          <p style="font-size: 0.875rem; color: var(--aitema-muted); margin-bottom: 1.5rem;">Bitte notieren Sie Ihren Buchungscode.</p>
-        </div>
-
-        <div class="card" style="margin-top: 1.5rem;">
-          <div class="card-header">
-            Termindetails
-          </div>
-          <div class="card-body">
-            <dl class="detail-list">
-              <div class="detail-row">
-                <dt>Dienst</dt>
-                <dd>{bookingResult.service.name}</dd>
-              </div>
-              <div class="detail-row">
-                <dt>Ort</dt>
-                <dd>{bookingResult.location.name}</dd>
-              </div>
-              <div class="detail-row">
-                <dt>Datum</dt>
-                <dd>{new Date(bookingResult.scheduledStart).toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</dd>
-              </div>
-              <div class="detail-row">
-                <dt>Uhrzeit</dt>
-                <dd>{new Date(bookingResult.scheduledStart).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr</dd>
-              </div>
-            </dl>
-          </div>
-          {#if emailOptIn || smsOptIn || pushSubscribed}
-            <div class="card-footer">
-              <div>
-                <p style="font-size: 0.875rem; font-weight: 600; color: var(--aitema-navy); margin-bottom: 0.375rem;">Aktive Erinnerungen:</p>
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                  {#if emailOptIn}<span class="badge badge-blue">E-Mail</span>{/if}
-                  {#if smsOptIn}<span class="badge badge-green">SMS</span>{/if}
-                  {#if pushSubscribed}<span class="badge badge-slate">Push</span>{/if}
-                </div>
-              </div>
-            </div>
-          {/if}
-        </div>
-      </section>
-    {/if}
-
   </div>
-</main>
 
-<style>
-  .booking-page {
-    max-width: 720px;
-    margin: 0 auto;
-    padding-bottom: 3rem;
-    font-family: "Inter", system-ui, sans-serif;
-  }
+	{#if error}
+		<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-8" role="alert">
+			<p class="font-bold">Fehler</p>
+			<p>{error}</p>
+		</div>
+	{/if}
 
-  .booking-content {
-    padding: 2rem 1.5rem 1rem;
-  }
+	<div class="bg-secondary p-6 sm:p-8 rounded-card shadow-lg border border-transparent
+    {currentStep === 1 || currentStep === 2 ? 'bg-gradient-to-br from-accent-primary/5 to-transparent' : ''}">
 
-  .step-title {
-    font-size: 1.375rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-  }
-  .step-date-badge {
-    font-size: 0.875rem;
-    font-weight: 500;
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    margin-left: 0.5rem;
-  }
-  .step-intro {
-    color: #64748b;
-    font-size: 0.9375rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
+		{#if loading}
+			<div class="flex flex-col items-center justify-center min-h-[300px]">
+				<div class="w-12 h-12 border-4 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+				<p class="mt-4 text-secondary">Lade Daten...</p>
+			</div>
+    {:else if currentStep === 1}
+      <!-- Step 1: Select Service -->
+      <section class="fade-in-up">
+        <h2 class="text-2xl font-bold mb-6">Wählen Sie eine Dienstleistung</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {#each services as service}
+            <button onclick={() => selectService(service)} class="text-left p-4 bg-primary rounded-btn border border-border-color hover:border-accent-primary hover:shadow-glow transition-all duration-300">
+              <h3 class="font-bold text-lg">{service.name}</h3>
+              <p class="text-sm text-secondary mt-1">{service.duration} Minuten</p>
+            </button>
+          {/each}
+        </div>
+      </section>
 
-  .step-nav {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: space-between;
-    margin-top: 1.5rem;
-  }
+    {:else if currentStep === 2}
+      <!-- Step 2: Select Location -->
+      <section class="fade-in-up">
+        <h2 class="text-2xl font-bold mb-2">Standort für "{selectedService?.name}"</h2>
+        <p class="text-secondary mb-6">Wählen Sie den gewünschten Standort aus.</p>
+        <div class="grid md:grid-cols-2 gap-4">
+          {#each locations as location}
+            <button onclick={() => selectLocation(location)} class="text-left p-4 bg-primary rounded-btn border border-border-color hover:border-accent-primary hover:shadow-glow transition-all duration-300">
+              <h3 class="font-bold text-lg">{location.name}</h3>
+              <p class="text-sm text-secondary mt-1">{location.address}</p>
+            </button>
+          {/each}
+        </div>
+        <div class="mt-8">
+          <Button variant="secondary" onclick={prevStep}>Zurück zur Dienstleistung</Button>
+        </div>
+      </section>
 
-  /* booking form */
-  .booking-form { display: flex; flex-direction: column; }
+		{:else if currentStep === 3}
+			<!-- Step 3: Date & Time -->
+			<section class="fade-in-up">
+				<h2 class="text-2xl font-bold mb-6">Datum und Uhrzeit wählen</h2>
+				<div class="grid md:grid-cols-2 gap-8">
+					<div>
+						<h3 class="font-bold mb-4">Datum</h3>
+						<Calendar bind:selectedDate={selectedDate} />
+					</div>
+					<div>
+						<h3 class="font-bold mb-4">Verfügbare Uhrzeiten</h3>
+						<TimeSlotPicker timeSlots={availableSlots.map(s => s.startTime)} bind:selectedSlot={selectedSlot} />
+					</div>
+				</div>
+				<div class="flex justify-between mt-8">
+					<Button variant="secondary" onclick={prevStep}>Zurück</Button>
+					<Button onclick={nextStep} disabled={!selectedSlot}>Weiter</Button>
+				</div>
+			</section>
 
-  /* form-label required */
-  .required { color: #dc2626; }
+		{:else if currentStep === 4}
+			<!-- Step 4: User Details -->
+			<section class="fade-in-up">
+				<h2 class="text-2xl font-bold mb-6">Ihre persönlichen Daten</h2>
+				<form onsubmit={submitBooking} class="flex flex-col gap-4">
+					<div>
+						<label for="name" class="block text-sm font-medium text-secondary mb-1">Vollständiger Name <span class="text-red-500">*</span></label>
+						<input type="text" id="name" bind:value={citizenName} class="w-full bg-primary border rounded-btn p-2 {formErrors.name ? 'border-red-500' : 'border-border-color'}" required />
+            {#if formErrors.name}<p class="text-red-500 text-sm mt-1">{formErrors.name}</p>{/if}
+					</div>
+					<div>
+						<label for="email" class="block text-sm font-medium text-secondary mb-1">E-Mail-Adresse</label>
+						<input type="email" id="email" bind:value={citizenEmail} class="w-full bg-primary border rounded-btn p-2 {formErrors.email ? 'border-red-500' : 'border-border-color'}" />
+            {#if formErrors.email}<p class="text-red-500 text-sm mt-1">{formErrors.email}</p>{/if}
+					</div>
+					<div>
+						<label for="phone" class="block text-sm font-medium text-secondary mb-1">Telefonnummer (optional)</label>
+						<input type="tel" id="phone" bind:value={citizenPhone} class="w-full bg-primary border border-border-color rounded-btn p-2" />
+					</div>
+					<div>
+						<label for="notes" class="block text-sm font-medium text-secondary mb-1">Anmerkungen (optional)</label>
+						<textarea id="notes" bind:value={notes} rows="3" class="w-full bg-primary border border-border-color rounded-btn p-2"></textarea>
+					</div>
+					<div class="flex justify-between mt-4">
+						<Button type="button" variant="secondary" onclick={prevStep}>Zurück</Button>
+						<Button type="submit">Termin buchen</Button>
+					</div>
+				</form>
+			</section>
+    {:else if currentStep === 5 && bookingResult}
+      <!-- Confirmation Step -->
+      <section class="fade-in-up text-center">
+        <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+          <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 class="text-2xl font-bold mt-6 mb-2">Termin erfolgreich gebucht!</h2>
+        <p class="text-secondary mb-6">Ihr Buchungscode lautet:</p>
+        <div class="text-3xl font-bold tracking-widest bg-primary inline-block px-4 py-2 rounded-lg border border-border-color mb-8">
+          {bookingResult.bookingCode}
+        </div>
 
-  /* notif cards */
-  .notif-card {
-    border: 1.5px solid #e2e8f0;
-    border-radius: 0.75rem;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.875rem;
-    transition: border-color 150ms ease, background 150ms ease;
-  }
-  .notif-card.active { border-color: #3b82f6; background: rgba(59,130,246,0.02); }
-  .notif-card-header { display: flex; align-items: center; gap: 0.75rem; }
-  .notif-icon { font-size: 1.5rem; flex-shrink: 0; }
-  .notif-info { flex: 1; display: flex; flex-direction: column; font-size: 0.9rem; }
-  .notif-info strong { color: #0f172a; }
-  .notif-info span   { color: #64748b; font-size: 0.8125rem; margin-top: 0.125rem; }
-  .notif-detail { font-size: 0.8125rem; color: #64748b; margin: 0.5rem 0 0; line-height: 1.4; }
-  .notif-legal  { font-size: 0.75rem; color: #94a3b8; margin: 0.35rem 0 0; border-top: 1px solid #f1f5f9; padding-top: 0.35rem; }
+        <div class="text-left bg-primary p-4 rounded-lg border border-border-color">
+          <h3 class="font-bold mb-4">Ihre Termindetails:</h3>
+          <dl>
+            <div class="flex justify-between py-2 border-b border-border-color"><dt class="text-secondary">Dienstleistung</dt><dd class="font-semibold">{bookingResult.service.name}</dd></div>
+            <div class="flex justify-between py-2 border-b border-border-color"><dt class="text-secondary">Standort</dt><dd class="font-semibold">{bookingResult.location.name}</dd></div>
+            <div class="flex justify-between py-2 border-b border-border-color"><dt class="text-secondary">Datum</dt><dd class="font-semibold">{new Date(bookingResult.scheduledStart).toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-secondary">Uhrzeit</dt><dd class="font-semibold">{new Date(bookingResult.scheduledStart).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</dd></div>
+          </dl>
+        </div>
 
-  /* success / detail list */
-  .success-section { padding-top: 1rem; }
-  .detail-list { display: flex; flex-direction: column; gap: 0; }
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.9375rem;
-    gap: 1rem;
-  }
-  .detail-row:last-child { border-bottom: none; }
-  .detail-row dt { color: #64748b; font-weight: 500; }
-  .detail-row dd { color: #0f172a; font-weight: 600; text-align: right; }
-
-  @media (max-width: 600px) {
-    .booking-content { padding: 1.5rem 1rem 1rem; }
-    .step-nav { flex-direction: column-reverse; }
-    .step-nav button { width: 100%; justify-content: center; }
-  }
-</style>
+        <div class="mt-8">
+          <Button onclick={() => window.location.href = `/${tenant}/status?code=${bookingResult.bookingCode}` }>
+            Status verfolgen
+          </Button>
+        </div>
+      </section>
+		{/if}
+	</div>
+</div>
