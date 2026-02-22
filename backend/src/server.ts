@@ -20,6 +20,7 @@ import { startWaitlistWorker } from "./modules/waitlist/waitlist.job.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { tenantMiddleware } from "./middleware/tenant.js";
 import { startNotificationWorker } from "./modules/notification/notification.worker.js";
+import { icalRoutes } from "./routes/ical.routes.js";
 
 const config = getConfig();
 
@@ -131,6 +132,8 @@ async function buildApp() {
 
   // D1: Warteliste
   await app.register(waitlistRoutes, { prefix: "/api/v1/:tenantSlug/waitlist" });
+  // E4: ICS Kalender-Export fuer Buerger
+  await app.register(icalRoutes);
 
   return app;
 }
