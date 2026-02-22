@@ -6,34 +6,31 @@
   <title>Termine - aitema|Termin</title>
 </svelte:head>
 
-<main class="page">
-  <h1>Heutige Termine</h1>
-  <div class="appointment-list">
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Heutige Termine</h1>
+    <p class="page-subtitle">{new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:0.625rem;">
     {#if appointments.length === 0}
-      <p class="empty">Keine Termine fuer heute.</p>
+      <div style="text-align:center;padding:3rem 2rem;background:white;border:1px solid var(--aitema-slate-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+        <div style="width:3.5rem;height:3.5rem;background:var(--aitema-slate-100);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem;" aria-hidden="true">📅</div>
+        <p style="color:var(--aitema-muted);font-size:0.9375rem;">Keine Termine fuer heute.</p>
+      </div>
     {:else}
       {#each appointments as appt}
         <div class="appointment-card">
-          <div class="time">{new Date(appt.scheduledStart).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</div>
-          <div class="details">
+          <div class="appt-time">
+            {new Date(appt.scheduledStart).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+          <div class="appt-details">
             <strong>{appt.citizenName}</strong>
             <span>{appt.service?.name}</span>
           </div>
-          <div class="status">{appt.status}</div>
+          <span class="status-badge {appt.status?.toLowerCase() ?? 'scheduled'}">{appt.status}</span>
         </div>
       {/each}
     {/if}
   </div>
-</main>
-
-<style>
-  .page { max-width: 800px; margin: 0 auto; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  h1 { color: #003366; }
-  .empty { text-align: center; padding: 3rem; color: #999; background: #f5f5f5; border-radius: 8px; }
-  .appointment-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; margin: 0.5rem 0; background: white; border: 1px solid #e0e0e0; border-radius: 8px; }
-  .time { font-size: 1.25rem; font-weight: 700; color: #003366; min-width: 60px; }
-  .details { flex: 1; }
-  .details strong { display: block; }
-  .details span { font-size: 0.875rem; color: #666; }
-  .status { font-size: 0.75rem; padding: 0.25rem 0.5rem; background: #e0e0e0; border-radius: 4px; text-transform: uppercase; }
-</style>
+</div>

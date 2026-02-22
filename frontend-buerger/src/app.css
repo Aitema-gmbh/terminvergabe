@@ -1,34 +1,472 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* aitema GovTech Design System — Termin */
+/* Inter Font via system-stack (DSGVO-konform, kein Google Fonts) */
 
 :root {
-    --aitema-navy: #0f172a;
-    --aitema-accent: #3b82f6;
-    --aitema-emerald: #059669;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* aitema Tokens */
+  --aitema-navy:      #0f172a;
+  --aitema-blue:      #1e3a5f;
+  --aitema-accent:    #3b82f6;
+  --aitema-accent-hover: #2563eb;
+  --aitema-emerald:   #059669;
+  --aitema-red:       #dc2626;
+  --aitema-amber:     #d97706;
+  --aitema-slate-50:  #f8fafc;
+  --aitema-slate-100: #f1f5f9;
+  --aitema-slate-200: #e2e8f0;
+  --aitema-text:      #0f172a;
+  --aitema-muted:     #64748b;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--aitema-slate-50);
+  color: var(--aitema-text);
+  line-height: 1.6;
+}
+
+/* ========= CARD ========= */
+.aitema-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--aitema-slate-200);
+  transition: box-shadow 0.2s ease;
+}
+.aitema-card:hover { box-shadow: var(--shadow-lg); }
+
+/* ========= BUTTONS ========= */
+.aitema-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.aitema-btn-primary {
+  background: var(--aitema-accent);
+  color: white;
+}
+.aitema-btn-primary:hover:not(:disabled) { background: var(--aitema-accent-hover); }
+.aitema-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.aitema-btn-secondary {
+  background: var(--aitema-slate-100);
+  color: var(--aitema-text);
+}
+.aitema-btn-secondary:hover { background: var(--aitema-slate-200); }
+
+.aitema-btn-lg {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  border-radius: var(--radius-lg);
+}
+
+/* ========= BADGE ========= */
+.aitema-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.aitema-badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.aitema-badge-green  { background: #d1fae5; color: #065f46; }
+.aitema-badge-amber  { background: #fef3c7; color: #92400e; }
+.aitema-badge-red    { background: #fee2e2; color: #991b1b; }
+.aitema-badge-slate  { background: var(--aitema-slate-100); color: var(--aitema-muted); }
+
+/* ========= GRADIENT HERO ========= */
+.aitema-gradient-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%);
+}
+
+/* ========= STEP INDICATOR ========= */
+.step-indicator {
+  display: flex;
+  align-items: center;
+}
+.step-dot {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.step-dot.active {
+  background: var(--aitema-accent);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.2);
+  transform: scale(1.1);
+}
+.step-dot.done   { background: var(--aitema-emerald); color: white; }
+.step-dot.pending { background: var(--aitema-slate-200); color: var(--aitema-muted); }
+.step-line { flex: 1; height: 2px; background: var(--aitema-slate-200); transition: background 0.4s ease; }
+.step-line.done  { background: var(--aitema-emerald); }
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.375rem;
+  text-align: center;
+}
+.step-label.active { color: var(--aitema-accent); }
+.step-label.done   { color: var(--aitema-emerald); }
+.step-label.pending { color: var(--aitema-muted); }
+
+/* ========= TIMELINE ========= */
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.625rem;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--aitema-slate-200);
+}
+.timeline-item { position: relative; padding-bottom: 1.5rem; }
+.timeline-dot {
+  position: absolute;
+  left: -1.375rem;
+  top: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+.timeline-dot-green  { background: var(--aitema-emerald); }
+.timeline-dot-amber  { background: var(--aitema-amber); }
+.timeline-dot-red    { background: var(--aitema-red); }
+.timeline-dot-slate  { background: var(--aitema-slate-200); }
+
+/* ========= INPUT ========= */
+.aitema-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  background: white;
+  color: var(--aitema-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+.aitema-input:focus {
+  border-color: var(--aitema-accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.aitema-input.error {
+  border-color: var(--aitema-red);
+}
+.aitema-input.error:focus {
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
+}
+
+.aitema-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--aitema-text);
+  margin-bottom: 0.375rem;
+}
+
+.aitema-field { display: flex; flex-direction: column; gap: 0; }
+.aitema-field + .aitema-field { margin-top: 1.25rem; }
+
+.aitema-error-msg {
+  font-size: 0.75rem;
+  color: var(--aitema-red);
+  margin-top: 0.25rem;
+}
+
+/* ========= ALERT ========= */
+.aitema-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  border-left: 4px solid;
+}
+.aitema-alert-error {
+  background: #fef2f2;
+  border-color: var(--aitema-red);
+  color: #7f1d1d;
+}
+.aitema-alert-success {
+  background: #f0fdf4;
+  border-color: var(--aitema-emerald);
+  color: #14532d;
+}
+.aitema-alert-info {
+  background: #eff6ff;
+  border-color: var(--aitema-accent);
+  color: #1e3a8a;
+}
+
+/* ========= SPINNER ========= */
+.aitema-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--aitema-slate-200);
+  border-top-color: var(--aitema-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========= ANIMATIONS ========= */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 @keyframes float {
-	0% {
-		transform: translatey(0px);
-	}
-	50% {
-		transform: translatey(-20px);
-	}
-	100% {
-		transform: translatey(0px);
-	}
+  0%, 100% { transform: translateY(0); }
+  50%  { transform: translateY(-12px); }
 }
-
 @keyframes ping-slow {
-    75%, 100% {
-        transform: scale(1.5);
-        opacity: 0;
-    }
+  75%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes stroke-draw {
+  to { stroke-dashoffset: 0; }
 }
 
-@keyframes stroke-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+.animate-fade-in-up    { animation: fadeInUp 400ms ease forwards; }
+.animate-slide-in-left { animation: slideInLeft 300ms ease forwards; }
+
+/* ========= GRID HELPERS ========= */
+.aitema-container {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.aitema-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+.aitema-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.aitema-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .aitema-grid-2 { grid-template-columns: 1fr; }
+  .aitema-grid-3 { grid-template-columns: 1fr; }
+  .aitema-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .aitema-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ========= SERVICE CARD ========= */
+.service-card {
+  background: white;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+.service-card:hover {
+  border-color: var(--aitema-accent);
+  box-shadow: var(--shadow-lg), 0 0 0 3px rgba(59,130,246,0.1);
+  transform: translateY(-2px);
+}
+.service-card.selected {
+  border-color: var(--aitema-accent);
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.service-icon-wrap {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.875rem;
+  font-size: 1.5rem;
+}
+
+/* ========= TIME SLOT BUTTONS ========= */
+.slot-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-md);
+  background: white;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--aitema-text);
+}
+.slot-btn:hover {
+  border-color: var(--aitema-accent);
+  color: var(--aitema-accent);
+  background: #eff6ff;
+}
+.slot-btn.selected {
+  background: var(--aitema-accent);
+  border-color: var(--aitema-accent);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.slot-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* ========= CONFIRMATION HERO ========= */
+.confirm-hero {
+  text-align: center;
+  padding: 2rem 0 1.5rem;
+}
+.confirm-checkmark {
+  width: 5rem;
+  height: 5rem;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 0 0 8px rgba(5,150,105,0.1);
+}
+
+/* ========= QUEUE STATUS ========= */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+.live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s ease infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ========= STAT CARD ========= */
+.stat-card-gov {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--aitema-slate-200);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-gov::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-card-gov.blue::before  { background: var(--aitema-accent); }
+.stat-card-gov.green::before { background: var(--aitema-emerald); }
+.stat-card-gov.amber::before { background: var(--aitema-amber); }
+.stat-card-gov.red::before   { background: var(--aitema-red); }
+
+.stat-card-gov .stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--aitema-navy);
+  line-height: 1;
+  margin: 0.5rem 0 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.stat-card-gov .stat-title {
+  font-size: 0.8125rem;
+  color: var(--aitema-muted);
+  font-weight: 500;
+}
+
+/* ========= TICKET CARD ========= */
+.ticket-card-gov {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  animation: slideInLeft 0.3s ease-out;
+}
+.ticket-card-gov.called {
+  border-color: var(--aitema-amber);
+  background: #fffbeb;
+}
+.ticket-number-gov {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--aitema-navy);
+  min-width: 4rem;
+  font-variant-numeric: tabular-nums;
 }

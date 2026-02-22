@@ -5,33 +5,37 @@
   <title>Statistik - aitema|Termin</title>
 </svelte:head>
 
-<main class="page">
-  <h1>Statistik</h1>
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Statistik</h1>
+    <p class="page-subtitle">Uebersicht der Tages- und Wochenleistungen</p>
+  </div>
+
   <div class="stats-grid">
-    <div class="stat-card">
-      <h3>Durchschnittliche Wartezeit</h3>
-      <span class="value">-- Min.</span>
+    <div class="stat-card blue">
+      <span class="stat-icon" aria-hidden="true">&#8987;</span>
+      <div class="stat-number">-- <span style="font-size:1rem;font-weight:500;color:var(--aitema-muted);">Min.</span></div>
+      <div class="stat-label">Ø Wartezeit</div>
     </div>
-    <div class="stat-card">
-      <h3>Termine heute</h3>
-      <span class="value">--</span>
+    <div class="stat-card green">
+      <span class="stat-icon" aria-hidden="true">&#128197;</span>
+      <div class="stat-number">--</div>
+      <div class="stat-label">Termine heute</div>
     </div>
-    <div class="stat-card">
-      <h3>No-Show-Rate</h3>
-      <span class="value">-- %</span>
+    <div class="stat-card amber">
+      <span class="stat-icon" aria-hidden="true">&#10060;</span>
+      <div class="stat-number">-- <span style="font-size:1rem;font-weight:500;color:var(--aitema-muted);">%</span></div>
+      <div class="stat-label">No-Show-Rate</div>
     </div>
-    <div class="stat-card">
-      <h3>Auslastung</h3>
-      <span class="value">-- %</span>
+    <div class="stat-card blue" style="--card-accent:var(--aitema-blue);">
+      <span class="stat-icon" aria-hidden="true">&#128202;</span>
+      <div class="stat-number">-- <span style="font-size:1rem;font-weight:500;color:var(--aitema-muted);">%</span></div>
+      <div class="stat-label">Auslastung</div>
     </div>
   </div>
-</main>
 
-<style>
-  .page { max-width: 900px; margin: 0 auto; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  h1 { color: #003366; }
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0; }
-  .stat-card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; }
-  .stat-card h3 { margin: 0 0 0.5rem; font-size: 0.875rem; color: #666; }
-  .value { font-size: 2rem; font-weight: 700; color: #003366; }
-</style>
+  <div class="alert alert-info">
+    <span class="alert-icon">&#8505;</span>
+    <span>Statistiken werden in Kuerze mit Echtzeitdaten befuellt.</span>
+  </div>
+</div>

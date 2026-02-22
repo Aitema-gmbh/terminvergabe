@@ -1,0 +1,285 @@
+/* aitema GovTech Design System — Mitarbeiter */
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --aitema-navy:      #0f172a;
+  --aitema-blue:      #1e3a5f;
+  --aitema-accent:    #3b82f6;
+  --aitema-accent-hover: #2563eb;
+  --aitema-emerald:   #059669;
+  --aitema-red:       #dc2626;
+  --aitema-amber:     #d97706;
+  --aitema-slate-50:  #f8fafc;
+  --aitema-slate-100: #f1f5f9;
+  --aitema-slate-200: #e2e8f0;
+  --aitema-text:      #0f172a;
+  --aitema-muted:     #64748b;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  background-color: var(--aitema-slate-50);
+  color: var(--aitema-text);
+  line-height: 1.6;
+}
+
+/* Staff Dashboard Layout */
+.staff-main {
+  min-height: 100vh;
+  background: var(--aitema-slate-50);
+}
+.staff-dashboard {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+/* Staff Header */
+.staff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--aitema-slate-200);
+}
+
+/* Stat Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .stat-grid { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--aitema-slate-200);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.stat-card.blue::before  { background: var(--aitema-accent); }
+.stat-card.green::before { background: var(--aitema-emerald); }
+.stat-card.amber::before { background: var(--aitema-amber); }
+.stat-card.red::before   { background: var(--aitema-red); }
+
+.stat-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--aitema-navy);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-size: 0.8125rem;
+  color: var(--aitema-muted);
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 600px) { .action-grid { grid-template-columns: 1fr; } }
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1.75rem 1rem;
+  background: white;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--aitema-text);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.action-tile:hover {
+  border-color: var(--aitema-accent);
+  box-shadow: var(--shadow-lg), 0 0 0 3px rgba(59,130,246,0.1);
+  transform: translateY(-2px);
+  color: var(--aitema-accent);
+}
+.action-tile.primary {
+  background: var(--aitema-navy);
+  border-color: var(--aitema-navy);
+  color: white;
+}
+.action-tile.primary:hover {
+  background: var(--aitema-blue);
+  border-color: var(--aitema-blue);
+  color: white;
+}
+.action-tile-icon { font-size: 2rem; }
+
+/* Alert */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  border-left: 4px solid;
+}
+.alert-info {
+  background: #eff6ff;
+  border-color: var(--aitema-accent);
+  color: #1e3a8a;
+}
+.alert-icon { flex-shrink: 0; font-size: 1rem; }
+
+/* Staff Clock */
+.staff-clock {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--aitema-navy);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+/* Logo Icon */
+.staff-logo-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: var(--aitema-navy);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Appointment Cards */
+.appointment-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1px solid var(--aitema-slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease;
+}
+.appointment-card:hover { box-shadow: var(--shadow-md); }
+.appt-time {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--aitema-navy);
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.appt-details { flex: 1; }
+.appt-details strong { display: block; font-weight: 600; color: var(--aitema-navy); }
+.appt-details span { font-size: 0.8125rem; color: var(--aitema-muted); }
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.status-badge.scheduled { background: #dbeafe; color: #1d4ed8; }
+.status-badge.completed { background: #d1fae5; color: #065f46; }
+.status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+.status-badge.no-show   { background: #fef3c7; color: #92400e; }
+
+/* Ticket Card */
+.ticket-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1.5px solid var(--aitema-slate-200);
+  border-radius: var(--radius-lg);
+  animation: slideIn 0.3s ease-out;
+}
+.ticket-card.called {
+  border-color: var(--aitema-amber);
+  background: #fffbeb;
+}
+.ticket-number {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--aitema-navy);
+  min-width: 4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stats Page */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+/* Page Layout */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+.page-header {
+  margin-bottom: 1.75rem;
+}
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--aitema-navy);
+}
+.page-subtitle {
+  color: var(--aitema-muted);
+  font-size: 0.9375rem;
+  margin-top: 0.25rem;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
