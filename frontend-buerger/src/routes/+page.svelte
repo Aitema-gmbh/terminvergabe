@@ -1,11 +1,11 @@
 <script lang="ts">
-    import HeroSection from '$lib/components/HeroSection.svelte';
-    import ExplainerSteps from '$lib/components/ExplainerSteps.svelte';
+  import HeroSection from "$lib/components/HeroSection.svelte";
+  import ExplainerSteps from "$lib/components/ExplainerSteps.svelte";
 </script>
 
 <svelte:head>
-    <title>aitema | Termin - Online Terminvergabe</title>
-    <meta name="description" content="aitema | Termin ist eine Open-Source-Lösung für die Online-Terminvergabe in modernen Bürgerämtern." />
+  <title>aitema|Termin - Digitale Terminvergabe fuer Behoerden</title>
+  <meta name="description" content="Open-Source Terminverwaltung fuer Buergeraemter. DSGVO-konform, barrierefrei, MIT-lizenziert." />
 </svelte:head>
 
 <HeroSection />

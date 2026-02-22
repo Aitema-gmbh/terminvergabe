@@ -116,7 +116,6 @@ services:
       - "traefik.http.routers.termin.entrypoints=websecure"
       - "traefik.http.routers.termin.tls=true"
       - "traefik.http.routers.termin.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.termin.middlewares=termin-root-redirect@file"
       - "traefik.http.services.termin.loadbalancer.server.port=3000"
     networks:
       - termin-frontend
