@@ -1,99 +1,202 @@
+<div align="center">
+
 # aitema|Termin
 
-> Moderne, barrierefreie Terminvergabe für Behörden und kommunale Dienststellen.
+**Online-Terminvergabe für Behörden — Open Source, selbst-gehostet, DSGVO-konform**
 
-[\![Status](https://img.shields.io/badge/Status-Live-brightgreen)](https://termin.aitema.de)
-[\![Stack](https://img.shields.io/badge/Stack-SvelteKit%20%7C%20Fastify%20%7C%20PostgreSQL-blue)](https://termin.aitema.de)
-[\![BFSG](https://img.shields.io/badge/BFSG-konform-009933)](https://termin.aitema.de)
-[\![OZG](https://img.shields.io/badge/OZG%202.0-ready-0066cc)](https://termin.aitema.de)
+[![MIT License](https://img.shields.io/badge/Lizenz-MIT-22c55e?style=flat-square)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-termin.aitema.de-3b82f6?style=flat-square)](https://termin.aitema.de)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-2.12-ff3e00?style=flat-square&logo=svelte)](https://kit.svelte.dev)
+[![DSGVO](https://img.shields.io/badge/DSGVO-konform-16a34a?style=flat-square)](https://dsgvo-gesetz.de)
+[![BITV](https://img.shields.io/badge/BITV-2.0%20AA-16a34a?style=flat-square)](https://www.gesetze-im-internet.de/bitv_2_0/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=flat-square&logo=docker)](docker-compose.quickstart.yml)
 
-## Screenshots
+[**→ Live Demo**](https://termin.aitema.de) · [**Dokumentation**](docs/) · [**Bug melden**](https://github.com/Aitema-gmbh/terminvergabe/issues) · [**Diskussion**](https://github.com/Aitema-gmbh/terminvergabe/discussions)
 
-| Buchungsportal | Buchungs-Wizard | Kiosk-Display |
-|:-:|:-:|:-:|
-| \![Buchungsportal](docs/screenshots/termin-buerger-start.png) | \![Wizard](docs/screenshots/termin-buchen-wizard.png) | \![Kiosk](docs/screenshots/termin-kiosk-display.png) |
+</div>
 
-| Staff-Dashboard |
-|:-:|
-| \![Dashboard](docs/screenshots/termin-staff-dashboard.png) |
+---
+
+## Was ist aitema|Termin?
+
+aitema|Termin ist ein vollständiges **Online-Terminvergabesystem** für Bürgerämter, Ausländerbehörden, KFZ-Zulassungsstellen und andere kommunale Dienststellen. Bürgerinnen und Bürger buchen Termine online — oder ziehen vor Ort eine digitale Wartenummer.
+
+Das System läuft **komplett auf eurer eigenen Infrastruktur** — keine SaaS-Abhängigkeit, keine Datenweitergabe, kein Vendor Lock-in.
+
+> **Warum Open Source?** Öffentliche Verwaltung wird mit Steuergeld finanziert. Software für die Verwaltung sollte der Öffentlichkeit gehören.
+
+---
 
 ## Features
 
-### Für Bürgerinnen und Bürger
-- **5-Schritt-Buchungsassistent** – Standort → Service → Termin → Daten → Bestätigung
-- **QR-Code Check-in** – Termin am Kiosk scannen, kein Warten an der Theke
-- **iCal-Export** – Termin direkt in Kalender übernehmen (Apple, Google, Outlook)
-- **SMS-Benachrichtigung** – Erinnerung und Statusupdates via Sipgate (DSGVO-konform)
-- **Mehrsprachigkeit** – DE, EN, TR, AR, RU
-- **Barrierefreiheit** – WCAG 2.1 AA (BFSG-Verpflichtung ab 28.06.2025)
+### 👥 Für Bürgerinnen und Bürger
 
-### Für Verwaltungsmitarbeitende
-- **Live-Queue-Dashboard** – WebSocket-basierte Echtzeit-Warteschlange
-- **NoShow-Scoring** – KI-gestützte Risikoeinschätzung (0–100)
-- **CalDAV-Feed** – Eigene Termine direkt im Kalender (Outlook, Apple Calendar)
-- **Kiosk-Display** – Großes Ticketanzeigesystem für Wartebereiche
-- **Plausible Analytics** – Cookiefreie Besucherstatistiken (DSGVO, kein Banner)
+| Feature | Details |
+|---------|---------|
+| **Online-Buchung** | 5-Schritt-Assistent: Standort → Service → Datum/Zeit → Kontakt → Bestätigung |
+| **Wartenummer ziehen** | Walk-In ohne Termin: digitale Wartenummer per Browser |
+| **Status prüfen** | Buchungsreferenz eingeben → aktueller Status |
+| **QR-Code** | Bestätigung mit QR-Code für Check-in am Kiosk |
 
-## Technologie-Stack
+### 🏛️ Für Verwaltungsmitarbeitende
+
+| Feature | Details |
+|---------|---------|
+| **Staff-Dashboard** | Live-Warteschlange, Nächster Aufruf, Tages-Statistiken |
+| **Kiosk-Display** | Großformat-Anzeige für TV im Wartebereich, automatischer Ticket-Aufruf |
+| **Echtzeit** | WebSocket-basierte Live-Queue ohne Seitenneuladung |
+| **Offline-fähig** | Kiosk funktioniert auch bei Netzwerkproblemen |
+
+---
+
+## Compliance
+
+| Standard | Status |
+|----------|--------|
+| DSGVO | ✅ konform (keine externen Dienste) |
+| BITV 2.0 AA (Barrierefreiheit) | 🔄 in Arbeit |
+| BFSG (Barrierefreiheitsstärkungsgesetz) | 🔄 in Arbeit |
+| Open Source (MIT) | ✅ |
+
+---
+
+## Tech-Stack
 
 ```
-Frontend:  SvelteKit + Tailwind CSS (aitema Design System)
-Backend:   Fastify / Node.js + Prisma ORM
-Queue:     BullMQ + Redis Pub/Sub
-Datenbank: PostgreSQL 16
-Echtzeit:  WebSocket (native)
-Analytics: Plausible (Self-hosted)
-Auth:      JWT + Keycloak SSO
-Deploy:    Docker Compose + Traefik (Hetzner)
+Frontend (Bürger):   SvelteKit 2.12 + Svelte 5 (Runes: $state, $derived, $effect)
+                     Tailwind CSS + eigene CSS-Klassen
+Backend:             Node.js
+Datenbank:           PostgreSQL + Redis (Queue)
+Echtzeit:            WebSocket
+Deploy:              Docker Compose + Traefik + Let's Encrypt
 ```
 
-## Schnellstart (Entwicklung)
+---
+
+## Schnellstart (5 Minuten)
 
 ```bash
-# Voraussetzungen: Node.js 22+, Docker
 git clone https://github.com/Aitema-gmbh/terminvergabe.git
 cd terminvergabe
 
-# Backend
-cd backend && cp .env.example .env && npm install && npm run dev
+# Konfiguration
+cp .env.example .env
+# .env anpassen (Datenbankpasswort, Domain etc.)
 
-# Frontend (Bürger-App)
-cd ../frontend && npm install && npm run dev
+# Starten
+docker compose -f docker-compose.quickstart.yml up -d
 ```
+
+Die App ist dann unter `http://localhost:3000` erreichbar.
+
+**Für Produktion mit eigenem Domain:**
+
+```bash
+docker compose -f docker-compose.traefik.yml up -d
+```
+
+→ Vollständige Anleitung: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+---
 
 ## Architektur
 
 ```
-termin.aitema.de
-├── /           → SvelteKit Bürger-App (Buchungsportal)
-├── /buchen     → 5-Step-Booking-Wizard
-├── /checkin    → QR-Code Check-in
-├── /staff      → Staff-Dashboard (Keycloak-geschützt)
-├── /display    → Kiosk-Anzeige (Warteraum-Monitor)
-└── /api        → Fastify REST API
-    ├── /api/v1/appointments
-    ├── /api/v1/queue
-    ├── /api/v1/services
-    └── /api/v1/locations
+termin.aitema.de (Bürger-Frontend)
+├── /              →  Startseite (Übersicht, Schnellzugriff)
+├── /buchen        →  Buchungs-Wizard (5 Schritte)
+│   ├── Standort auswählen
+│   ├── Service auswählen
+│   ├── Datum & Uhrzeit wählen
+│   ├── Kontaktdaten eingeben
+│   └── Bestätigung + QR-Code
+├── /wartenummer   →  Walk-In Wartenummer ziehen
+├── /status        →  Terminstatus per Referenz prüfen
+└── /display/kiosk →  Kiosk-Anzeige (TV-Modus, automatischer Aufruf)
+
+Staff-Dashboard (intern)
+├── Live-Queue verwalten
+├── Nächsten Termin aufrufen
+└── Tages-Statistiken
+
+Backend (Node.js REST API)
+├── POST /api/v1/appointments   →  Buchung erstellen
+├── GET  /api/v1/slots          →  Verfügbare Termine
+├── GET  /api/v1/queue          →  Live-Warteschlange
+└── WS   /api/v1/queue/live     →  WebSocket Queue-Updates
 ```
-
-## Dokumentation
-
-- [Architektur](docs/ARCHITECTURE.md)
-- [API-Referenz](docs/API.md)
-- [PRD Batch 1](docs/PRD-features-2026-02.md)
-- [PRD Batch 2](docs/PRD-features-2026-02-batch2.md)
-- [PRD Batch 3](docs/PRD-features-2026-02-batch3.md)
-
-## Compliance
-
-| Anforderung | Status |
-|-------------|--------|
-| OZG 2.0 | ✅ |
-| BFSG (WCAG 2.1 AA) | ✅ ab 28.06.2025 |
-| DSGVO (kein Google Fonts, Plausible) | ✅ |
-| BSI Grundschutz | 🔄 in Vorbereitung |
 
 ---
 
-*Entwickelt von [aitema GmbH](https://aitema.de) · [Impressum](https://aitema.de/impressum)*
+## Roadmap
+
+- [x] Online-Buchungs-Wizard (5 Schritte)
+- [x] Walk-In Wartenummer-System
+- [x] Kiosk-Display für Wartebereiche
+- [x] Staff-Dashboard mit Live-Queue
+- [x] QR-Code Bestätigung
+- [ ] E-Mail-Bestätigung & Erinnerung
+- [ ] iCal-Export (Termin in Kalender)
+- [ ] SMS-Benachrichtigung (Sipgate/Twilio, DSGVO-konform)
+- [ ] BITV 2.0 AA vollständige Barrierefreiheit
+- [ ] CalDAV-Integration (Outlook, Apple Calendar)
+- [ ] Multi-Standort (eine Instanz, viele Dienststellen)
+
+Ideen und Feature-Requests → [GitHub Discussions](https://github.com/Aitema-gmbh/terminvergabe/discussions)
+
+---
+
+## Beitragen
+
+Beiträge sind willkommen — von Bugfixes bis zu neuen Features.
+
+```bash
+# 1. Fork + Clone
+git clone https://github.com/DEIN-USERNAME/terminvergabe.git
+
+# 2. Feature-Branch
+git checkout -b feat/mein-feature
+
+# 3. Entwickeln, testen, committen (Conventional Commits)
+git commit -m "feat: kurze Beschreibung"
+
+# 4. Pull Request öffnen
+```
+
+→ Vollständige Anleitung: [CONTRIBUTING.md](CONTRIBUTING.md)  
+→ Verhaltenskodex: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)  
+→ Sicherheitslücken melden: [SECURITY.md](SECURITY.md)
+
+**Gute Einstiegspunkte:** [`good first issue`](https://github.com/Aitema-gmbh/terminvergabe/issues?q=label%3A%22good+first+issue%22)
+
+---
+
+## Verwandte Projekte
+
+| Projekt | Beschreibung |
+|---------|-------------|
+| [aitema\|Hinweis](https://github.com/Aitema-gmbh/hinweisgebersystem) | Anonymes Hinweisgebersystem (HinSchG) |
+| [aitema\|RIS](https://github.com/Aitema-gmbh/ratsinformationssystem) | Offenes Ratsinformationssystem (OParl 1.1) |
+
+---
+
+## Lizenz
+
+MIT — frei nutzbar, auch für Kommunen und öffentliche Stellen.
+
+```
+Copyright (c) 2025 aitema GmbH
+```
+
+Vollständiger Lizenztext: [LICENSE](LICENSE)
+
+---
+
+<div align="center">
+
+Entwickelt von [aitema GmbH](https://aitema.de) · AI Innovation for Public Sector  
+[aitema.de](https://aitema.de) · [kontakt@aitema.de](mailto:kontakt@aitema.de)
+
+*GovTech aus Deutschland — für Deutschland.*
+
+</div>
